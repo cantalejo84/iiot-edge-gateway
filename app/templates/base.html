@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}IIoT Edge Gateway{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/app.css') }}" rel="stylesheet">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <div class="d-flex">
+        <!-- Sidebar -->
+        <nav class="sidebar d-flex flex-column flex-shrink-0 p-3">
+            <div class="sidebar-brand mb-4">
+                <i class="bi bi-cpu"></i>
+                <span>IIoT Gateway</span>
+            </div>
+
+            <ul class="nav nav-pills flex-column mb-auto gap-1">
+                <li class="nav-item">
+                    <a class="nav-link {% if request.path == '/dashboard' %}active{% endif %}" href="/dashboard">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-section-label">INPUT</li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.path == '/opcua/config' %}active{% endif %}" href="/opcua/config">
+                        <i class="bi bi-plug"></i> OPC UA Config
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.path == '/opcua/browser' %}active{% endif %}" href="/opcua/browser">
+                        <i class="bi bi-diagram-3"></i> Browse Nodes
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.path == '/opcua/nodes' %}active{% endif %}" href="/opcua/nodes">
+                        <i class="bi bi-check2-square"></i> Node Selection
+                    </a>
+                </li>
+                <li class="nav-section-label">OUTPUT</li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.path == '/mqtt/config' %}active{% endif %}" href="/mqtt/config">
+                        <i class="bi bi-cloud-arrow-up"></i> MQTT Config
+                    </a>
+                </li>
+                <li class="nav-section-label">SYSTEM</li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" data-action="preview-config">
+                        <i class="bi bi-file-earmark-code"></i> Preview Config
+                    </a>
+                </li>
+            </ul>
+
+            <div class="sidebar-apply mt-3">
+                <button class="btn btn-apply w-100" id="btn-apply-sidebar" data-action="generate-config">
+                    <i class="bi bi-rocket-takeoff"></i> Apply & Restart
+                </button>
+                <div class="text-center mt-1" style="font-family: var(--font-mono); font-size: 0.6rem; color: var(--text-muted);">
+                    Generates telegraf.conf and restarts Telegraf
+                </div>
+            </div>
+
+            <div class="mt-auto">
+                <div id="config-status" class="config-status">
+                    {% if is_dirty is defined and is_dirty %}
+                    <span class="badge-status badge-dirty"><i class="bi bi-exclamation-circle"></i> Unapplied changes</span>
+                    {% else %}
+                    <span class="badge-status badge-clean"><i class="bi bi-check-circle"></i> Config synced</span>
+                    {% endif %}
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="main-content flex-grow-1">
+            <div class="content-header d-flex justify-content-between align-items-center mb-4">
+                <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
+                <div>{% block header_actions %}{% endblock %}</div>
+            </div>
+
+            <div id="alert-container"></div>
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- Config Preview Modal -->
+    <div class="modal fade" id="configPreviewModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-file-earmark-code"></i> telegraf.conf Preview</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <pre id="config-preview-content" class="config-preview"></pre>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="btn-apply-from-preview">
+                        <i class="bi bi-gear-wide-connected"></i> Apply Config
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block page_title %}OPC UA Configuration{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Connection Settings</span>
+                <button class="btn btn-sm btn-outline-secondary" id="btn-use-demo" title="Auto-fill with built-in demo server">
+                    <i class="bi bi-lightning"></i> Use Demo Server
+                </button>
+            </div>
+            <div class="card-body p-3">
+                <div class="mb-3">
+                    <label class="form-label">Endpoint URL</label>
+                    <input type="text" class="form-control" id="endpoint" value="{{ config.endpoint }}" placeholder="opc.tcp://opcua-demo-server:4840/freeopcua/server/">
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Auth Method</label>
+                        <select class="form-select" id="auth_method">
+                            <option value="Anonymous" {% if config.auth_method == 'Anonymous' %}selected{% endif %}>Anonymous</option>
+                            <option value="UserName" {% if config.auth_method == 'UserName' %}selected{% endif %}>UserName</option>
+                            <option value="Certificate" {% if config.auth_method == 'Certificate' %}selected{% endif %}>Certificate</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Security Policy</label>
+                        <select class="form-select" id="security_policy">
+                            <option value="None" {% if config.security_policy == 'None' %}selected{% endif %}>None</option>
+                            <option value="Basic128Rsa15" {% if config.security_policy == 'Basic128Rsa15' %}selected{% endif %}>Basic128Rsa15</option>
+                            <option value="Basic256" {% if config.security_policy == 'Basic256' %}selected{% endif %}>Basic256</option>
+                            <option value="Basic256Sha256" {% if config.security_policy == 'Basic256Sha256' %}selected{% endif %}>Basic256Sha256</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Security Mode</label>
+                        <select class="form-select" id="security_mode">
+                            <option value="None" {% if config.security_mode == 'None' %}selected{% endif %}>None</option>
+                            <option value="Sign" {% if config.security_mode == 'Sign' %}selected{% endif %}>Sign</option>
+                            <option value="SignAndEncrypt" {% if config.security_mode == 'SignAndEncrypt' %}selected{% endif %}>SignAndEncrypt</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- UserName fields -->
+                <div id="username-section" class="mt-3" style="display: none;">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Username</label>
+                            <input type="text" class="form-control" id="username" value="{{ config.username }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" value="{{ config.password }}">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Certificate fields -->
+                <div id="certificate-section" class="mt-3" style="display: none;">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Client Certificate</label>
+                            <input type="file" class="form-control" id="opcua_cert" accept=".pem,.crt,.der">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Private Key</label>
+                            <input type="file" class="form-control" id="opcua_key" accept=".pem,.key">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-1">
+                    <div class="col-md-6">
+                        <label class="form-label">Connect Timeout</label>
+                        <input type="text" class="form-control" id="connect_timeout" value="{{ config.connect_timeout }}" placeholder="10s">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Request Timeout</label>
+                        <input type="text" class="form-control" id="request_timeout" value="{{ config.request_timeout }}" placeholder="5s">
+                    </div>
+                </div>
+
+                <div class="mt-2">
+                    <span id="save-indicator" class="text-secondary" style="font-family: var(--font-mono); font-size: 0.7rem;"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">Connection Test</div>
+            <div class="card-body p-3">
+                <p class="text-secondary" style="font-size: 0.8rem;">
+                    Test the OPC UA connection before browsing nodes or applying configuration.
+                </p>
+                <button class="btn btn-outline-secondary w-100" id="btn-test">
+                    <i class="bi bi-plug"></i> Test Connection
+                </button>
+                <div id="test-result" class="test-result"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const authSelect = document.getElementById("auth_method");
+    const userSection = document.getElementById("username-section");
+    const certSection = document.getElementById("certificate-section");
+    const saveIndicator = document.getElementById("save-indicator");
+    let saveTimeout = null;
+
+    function toggleSections() {
+        userSection.style.display = authSelect.value === "UserName" ? "block" : "none";
+        certSection.style.display = authSelect.value === "Certificate" ? "block" : "none";
+    }
+    authSelect.addEventListener("change", toggleSections);
+    toggleSections();
+
+    function getFormData() {
+        return {
+            endpoint: document.getElementById("endpoint").value,
+            auth_method: authSelect.value,
+            username: document.getElementById("username").value,
+            password: document.getElementById("password").value,
+            security_policy: document.getElementById("security_policy").value,
+            security_mode: document.getElementById("security_mode").value,
+            connect_timeout: document.getElementById("connect_timeout").value,
+            request_timeout: document.getElementById("request_timeout").value,
+        };
+    }
+
+    // Auto-save with debounce
+    async function autoSave() {
+        saveIndicator.textContent = "Saving...";
+        const data = await fetchJSON("/api/opcua/config", { method: "POST", body: getFormData() });
+        if (data.ok) {
+            saveIndicator.textContent = "Saved";
+            updateConfigStatus(true);
+            setTimeout(() => { saveIndicator.textContent = ""; }, 2000);
+        }
+    }
+
+    function scheduleAutoSave() {
+        saveIndicator.textContent = "Unsaved changes...";
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(autoSave, 800);
+    }
+
+    // Attach auto-save to all form fields
+    document.querySelectorAll("#endpoint, #auth_method, #security_policy, #security_mode, #username, #password, #connect_timeout, #request_timeout")
+        .forEach(el => {
+            el.addEventListener("change", scheduleAutoSave);
+            el.addEventListener("input", scheduleAutoSave);
+        });
+
+    // Demo server quick-fill + immediate save
+    document.getElementById("btn-use-demo").addEventListener("click", () => {
+        document.getElementById("endpoint").value = "opc.tcp://opcua-demo-server:4840/freeopcua/server/";
+        authSelect.value = "Anonymous";
+        document.getElementById("security_policy").value = "None";
+        document.getElementById("security_mode").value = "None";
+        document.getElementById("connect_timeout").value = "10s";
+        document.getElementById("request_timeout").value = "5s";
+        document.getElementById("username").value = "";
+        document.getElementById("password").value = "";
+        toggleSections();
+        autoSave();
+        showAlert("Demo server settings applied and saved.", "success");
+    });
+
+    // Test connection
+    document.getElementById("btn-test").addEventListener("click", async () => {
+        const btn = document.getElementById("btn-test");
+        const result = document.getElementById("test-result");
+        setLoading(btn, true);
+        result.className = "test-result";
+        result.style.display = "";
+
+        const data = await fetchJSON("/api/opcua/test-connection", { method: "POST", body: getFormData() });
+        setLoading(btn, false);
+
+        if (data.ok) {
+            result.className = "test-result success";
+            result.textContent = "Connected successfully: " + data.server;
+        } else {
+            result.className = "test-result error";
+            result.textContent = "Connection failed: " + data.error;
+        }
+    });
+});
+</script>
+{% endblock %}

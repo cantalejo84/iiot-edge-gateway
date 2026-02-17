@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- System Health -->
+<div class="card mb-4">
+    <div class="card-header"><i class="bi bi-heart-pulse"></i> System Health</div>
+    <div class="card-body">
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="metric-card">
+                    <div class="metric-value" id="cpu-value">--</div>
+                    <div class="metric-label">CPU Usage</div>
+                    <div class="progress mt-2">
+                        <div class="progress-bar" id="cpu-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="metric-card">
+                    <div class="metric-value" id="ram-value">--</div>
+                    <div class="metric-label">Memory Usage</div>
+                    <div class="progress mt-2">
+                        <div class="progress-bar" id="ram-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="metric-card">
+                    <div class="metric-value" id="disk-value">--</div>
+                    <div class="metric-label">Disk Usage</div>
+                    <div class="progress mt-2">
+                        <div class="progress-bar" id="disk-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Service Status -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-hdd-stack"></i> Service Status</div>
+            <div class="card-body">
+                <div class="d-flex flex-column gap-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="status-indicator">
+                            <span class="status-dot online"></span> Gateway (Flask)
+                        </span>
+                        <span class="badge text-bg-success">Running</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="status-indicator">
+                            <span class="status-dot" id="telegraf-dot"></span> Telegraf
+                        </span>
+                        <span class="badge" id="telegraf-badge">Checking...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-arrow-left-right"></i> OPC UA → MQTT Pipeline</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="metric-card">
+                            <div class="metric-value" id="opcua-gathered" style="font-size: 1.5rem;">--</div>
+                            <div class="metric-label">OPC UA Read</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="metric-card">
+                            <div class="metric-value" id="mqtt-written" style="font-size: 1.5rem;">--</div>
+                            <div class="metric-label">MQTT Sent</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="metric-card">
+                            <div class="metric-value" id="mqtt-dropped" style="font-size: 1.5rem; color: var(--warning);">--</div>
+                            <div class="metric-label">MQTT Dropped</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="metric-card">
+                            <div class="metric-value" id="opcua-errors" style="font-size: 1.5rem; color: var(--danger);">--</div>
+                            <div class="metric-label">OPC UA Errors</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center mt-2" style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted);">
+                    Since last restart · Updated: <span id="last-updated">--</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

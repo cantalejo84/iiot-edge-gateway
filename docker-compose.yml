@@ -1,0 +1,49 @@
+services:
+  gateway:
+    build: .
+    ports:
+      - "8050:5000"
+    volumes:
+      - ./data:/app/data
+      - ./telegraf:/app/telegraf-output
+      - telegraf-metrics:/tmp/telegraf-metrics
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - FLASK_APP=app
+      - FLASK_ENV=production
+      - DATA_DIR=/app/data
+      - TELEGRAF_OUTPUT_DIR=/app/telegraf-output
+      - TELEGRAF_HEALTH_URL=http://telegraf:8080
+      - TELEGRAF_METRICS_FILE=/tmp/telegraf-metrics/metrics.json
+    depends_on:
+      - telegraf
+
+  telegraf:
+    image: telegraf:1.33
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-c", "touch /tmp/telegraf-metrics/metrics.json && telegraf"]
+    volumes:
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+      - ./data/certs:/etc/telegraf/certs:ro
+      - telegraf-metrics:/tmp/telegraf-metrics
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  opcua-demo-server:
+    build: ./test_infra/opcua_server
+    ports:
+      - "4840:4840"
+    restart: unless-stopped
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./test_infra/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+    restart: unless-stopped
+
+volumes:
+  telegraf-metrics:

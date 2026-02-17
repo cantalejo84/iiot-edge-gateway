@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block page_title %}Node Selection{% endblock %}
+
+{% block header_actions %}
+<a href="/opcua/browser" class="btn btn-outline-secondary"><i class="bi bi-plus-circle"></i> Add Nodes</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Selected Nodes (<span id="node-count">0</span>)</span>
+        <button class="btn btn-sm btn-outline-secondary" id="btn-clear-all" title="Remove all">
+            <i class="bi bi-trash"></i> Clear All
+        </button>
+    </div>
+    <div class="card-body p-0">
+        <div id="nodes-empty" class="text-center text-secondary p-5" style="display: none;">
+            <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+            <p class="mt-2 mb-0">No nodes selected. <a href="/opcua/browser">Browse and add nodes</a>.</p>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="nodes-table" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Namespace</th>
+                        <th>Identifier</th>
+                        <th>Type</th>
+                        <th>Mode</th>
+                        <th>Interval</th>
+                        <th>Deadband</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="nodes-tbody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/node_selection.js') }}"></script>
+{% endblock %}
