@@ -9,42 +9,49 @@ Industrial IoT Edge Gateway: Flask web app that configures Telegraf to read OPC 
 ## Development Commands
 
 ```bash
-# Local dev (port 5000 may be taken by AirPlay on macOS, use 8050)
-source venv/bin/activate
-FLASK_APP=app FLASK_DEBUG=1 flask run --port 8050
-
-# Docker dev (includes test OPC UA server + Mosquitto MQTT broker)
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
-
-# Production
+# Full stack (gateway + telegraf + demo OPC UA server + Mosquitto broker)
 docker compose up --build -d
 
-# After generating new telegraf.conf via UI
-docker compose restart telegraf
+# Dev mode (adds hot-reload + debug)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+
+# View logs
+docker compose logs -f gateway
+docker compose logs -f telegraf
+
+# Local dev without Docker (port 5000 may be taken by AirPlay on macOS, use 8050)
+source venv/bin/activate
+FLASK_APP=app FLASK_DEBUG=1 flask run --port 8050
 ```
+
+Gateway runs on port **8050** (`localhost:8050`).
 
 ## Architecture
 
-**Request flow:** Browser → Flask routes (blueprints) → services → JSON config / async OPC UA / MQTT test
+**Request flow:** Browser -> Flask routes (blueprints) -> services -> JSON config / async OPC UA / MQTT test
 
 **4 Blueprints** in `app/routes/`:
-- `opcua.py` — OPC UA config + node browsing + node selection APIs
-- `mqtt.py` — MQTT config + TLS cert upload
-- `telegraf.py` — Preview and generate `telegraf.conf`
-- `dashboard.py` — System health (psutil) + Telegraf metrics
+- `opcua.py` -- OPC UA config + node browsing + node selection APIs
+- `mqtt.py` -- MQTT config + TLS cert upload
+- `telegraf.py` -- Preview and generate `telegraf.conf` + restart Telegraf container via Docker SDK
+- `dashboard.py` -- System health (psutil) + Telegraf pipeline metrics (OPC UA -> MQTT)
 
 **5 Services** in `app/services/`:
-- `config_store.py` — Thread-safe JSON persistence (`data/config.json`) with atomic writes via tmp+rename
-- `opcua_client.py` — asyncua wrapper for connect/browse/read
-- `mqtt_client.py` — paho-mqtt connection test with TLS support
-- `telegraf_config.py` — Renders `app/telegraf/telegraf.conf.j2` with Jinja2
-- `system_monitor.py` — CPU/RAM via psutil, Telegraf health via HTTP, metrics from shared JSON file
+- `config_store.py` -- Thread-safe JSON persistence (`data/config.json`) with atomic writes via tmp+rename
+- `opcua_client.py` -- asyncua wrapper for connect/browse/read
+- `mqtt_client.py` -- paho-mqtt connection test with TLS support
+- `telegraf_config.py` -- Renders `app/telegraf/telegraf.conf.j2` with Jinja2
+- `system_monitor.py` -- CPU/RAM via psutil, Telegraf health via HTTP, pipeline metrics (OPC UA gathered / MQTT written) from shared JSON file
 
-**Frontend:** Bootstrap 5 CDN + vanilla JS. Each page has a dedicated JS file in `app/static/js/`. Templates use Jinja2 server-side rendering.
+**Frontend:** Bootstrap 5 CDN + vanilla JS. Each page has a dedicated JS file in `app/static/js/`. Templates use Jinja2 server-side rendering. All config screens use **auto-save with debounce** (no Save buttons).
 
 ## Key Patterns
 
-**Async-from-sync bridge:** asyncua is async-only but Flask is sync. Routes use `asyncio.run()` to call async OPC UA operations. Creates a new event loop per request — acceptable for MVP low-concurrency.
+**Auto-save:** All config screens (OPC UA, Node Selection, MQTT) auto-save on field change with 800ms debounce. No Save buttons.
+
+**Apply & Restart:** The sidebar "Apply & Restart" button generates `telegraf.conf` from config AND restarts the Telegraf container via Docker SDK (`docker` Python package). Requires Docker socket mount (`/var/run/docker.sock`).
+
+**Async-from-sync bridge:** asyncua is async-only but Flask is sync. Routes use `asyncio.run()` to call async OPC UA operations. Creates a new event loop per request -- acceptable for MVP low-concurrency.
 
 **Dirty state tracking:** `config_store` tracks `_meta.last_modified` vs `_meta.last_applied`. The UI shows an "Unapplied changes" warning when config has been saved but `telegraf.conf` hasn't been regenerated.
 
@@ -52,10 +59,22 @@ docker compose restart telegraf
 
 **Config structure:** Single `data/config.json` with sections: `opcua`, `nodes` (array), `mqtt`, `_meta`. Defaults defined in `app/config.py`.
 
-## Testing Infrastructure
+**Telegraf MQTT topic:** Uses Telegraf template syntax `{{ .Hostname }}/{{ .PluginName }}` (NOT Go template `{{ .Name }}`). Topic values with double quotes inside must use **single quotes** in TOML to avoid parse errors.
 
-`test_infra/opcua_server/server.py` — asyncua server with simulated Plant/Line1/Line2 hierarchy (Temperature, Pressure, Speed, Status variables that update every 2s).
+**Telegraf metrics:** `[[inputs.internal]]` writes to a shared Docker volume (`telegraf-metrics`). The file output uses `namepass = ["internal_*"]` to filter. Dashboard reads per-plugin metrics filtered by tags (`input: "opcua"`, `output: "mqtt"`).
 
-`test_infra/mosquitto/mosquitto.conf` — Anonymous MQTT broker on ports 1883 + 9001 (websocket).
+**Telegraf permissions:** Container runs as `user: "0:0"` (root) with an entrypoint that pre-creates the metrics file before starting Telegraf.
 
-Both start automatically with `docker-compose.dev.yml`.
+## Demo Infrastructure
+
+Built-in demo servers are always included in `docker-compose.yml` (not dev-only):
+- `opcua-demo-server` -- asyncua server with simulated Plant/Line1/Line2 hierarchy (Temperature, Pressure, Speed, Status variables that update every 2s). Source: `test_infra/opcua_server/server.py`
+- `mosquitto` -- Anonymous MQTT broker on ports 1883 + 9001 (websocket). Config: `test_infra/mosquitto/mosquitto.conf`
+
+The UI has "Use Demo Server" / "Use Demo Broker" quick-fill buttons.
+
+## Files NOT in git (runtime-generated)
+
+- `data/config.json` -- user configuration (runtime state)
+- `data/certs/` -- TLS certificates
+- `telegraf/telegraf.conf` -- generated by the app
