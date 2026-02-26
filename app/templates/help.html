@@ -828,6 +828,28 @@ ns=2;g=abc-...  (guid)</code>
                 </div>
 
                 <div class="help-section">
+                    <h2 class="help-h2">Updating the gateway</h2>
+                    <p class="help-p">
+                        To update to a new version on a running server, SSH in and run:
+                    </p>
+                    <code class="help-code-block">cd iiot-edge-gateway
+
+# Pull the new release
+git pull origin 1.2.0
+
+# Rebuild the gateway container (Telegraf and data are untouched)
+docker compose up --build -d gateway</code>
+                    <p class="help-p mt-2">
+                        If the release includes changes to <code>docker-compose.yml</code>, restart the full stack instead:
+                    </p>
+                    <code class="help-code-block">docker compose up --build -d</code>
+                    <div class="help-callout help-callout-tip mt-3">
+                        <div class="help-callout-title"><i class="bi bi-info-circle-fill"></i> Your data is safe</div>
+                        A gateway rebuild does not touch <code>data/config.json</code>, your TLS certificates, or the running Telegraf agent. Data collection continues uninterrupted.
+                    </div>
+                </div>
+
+                <div class="help-section">
                     <h2 class="help-h2">Deploy vs Preview</h2>
                     <table class="help-table">
                         <thead><tr><th>Action</th><th>What it does</th></tr></thead>

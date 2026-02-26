@@ -55,6 +55,30 @@ Open **http://localhost:8050** in your browser.
 
 > A demo OPC UA server and Mosquitto MQTT broker are included for testing. No external services needed to try it out.
 
+## Updating
+
+To update the gateway to a new version on a running server:
+
+```bash
+cd iiot-edge-gateway
+
+# Pull the new release
+git pull origin 1.2.0
+
+# Rebuild and restart the gateway container (Telegraf and data are untouched)
+docker compose up --build -d gateway
+```
+
+If the release includes changes to `docker-compose.yml` (e.g. new services or volume mounts), restart the full stack instead:
+
+```bash
+docker compose up --build -d
+```
+
+Your configuration data (`data/config.json`, certificates) and the running Telegraf agent are not affected by a gateway-only rebuild.
+
+---
+
 ## Uninstall / Remove everything
 
 To completely remove the application, all containers, images, volumes, and configuration data:
