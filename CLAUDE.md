@@ -68,7 +68,7 @@ Gateway runs on port **8050** (`localhost:8050`).
 
 **Certificate path mapping:** Users upload certs to `data/certs/mqtt/` on host. Config stores container-side paths (`/etc/telegraf/certs/mqtt/*.pem`) because Telegraf reads them from its container volume mount.
 
-**Config structure:** Single `data/config.json` with sections: `opcua`, `nodes` (array), `mqtt`, `_meta`. Defaults defined in `app/config.py`.
+**Config structure:** Single `data/config.json` with sections: `opcua`, `nodes` (array), `mqtt`, `publishing`, `_meta`. Defaults defined in `app/config.py`.
 
 **Telegraf MQTT topic:** Uses Telegraf template syntax `{{ .Hostname }}/{{ .PluginName }}` (NOT Go template `{{ .Name }}`). Topic values with double quotes inside must use **single quotes** in TOML to avoid parse errors.
 
@@ -88,6 +88,14 @@ Gateway runs on port **8050** (`localhost:8050`).
 
 **Telegraf permissions:** Container runs as `user: "0:0"` (root) with an entrypoint that pre-creates the metrics file before starting Telegraf.
 
+**Message Format (publishing):** Node Selection has an Individual / Grouped toggle stored in `config.json` under `publishing` (`mode`, `group_interval`). API: `GET/POST /api/opcua/publishing`. Grouped mode uses `[[inputs.opcua.group]]` + `tagexclude = ["id"]` + `[[aggregators.merge]]` with `drop_original = true`. **Critical:** use `aggregators.merge`, NOT `processors.merge` (doesn't exist). `drop_original = true` is required — without it both individual and grouped messages are published. `[[inputs.opcua.group]]` does NOT support `metric_name` in Telegraf 1.33.
+
+**First-deploy detection:** `dashboard.py` checks `os.path.isfile(conf_path)` and passes `never_deployed` to the template. A welcome banner is shown when no config has been deployed yet.
+
+**Telegraf entrypoint (docker-compose.yml):** Container waits for `telegraf.conf` to exist before starting (loop with `sleep 3`), then runs a retry loop with `sleep 10` on crash. Telegraf volume is mounted as a directory (`./telegraf:/etc/telegraf-conf:ro`) — NOT as a file — to avoid Docker creating it as a directory on fresh installs.
+
+**Telegraf logs endpoint:** `GET /api/telegraf/logs` reads Docker container logs via SDK (`container.logs(tail=50)`). Exposed in a Telegraf tab inside the Logs modal (`common.js`: `loadTelegrafLogs()`). After deploy, `telegraf.py` sleeps 3s then scans logs for `E!` lines to surface config parse errors in the event log.
+
 **MQTT Live Tail:** `MqttTailSubscriber` is a module-level singleton in `mqtt_client.py` with a background paho-mqtt thread and `deque(maxlen=5)`. Converts Telegraf topic templates to MQTT wildcards via regex (`{{ .Hostname }}` -> `+`). Auto-stops after 10 seconds in the frontend.
 
 **Container status:** `system_monitor.get_container_status()` uses Docker SDK to list project containers and maps service names to user-friendly display names (e.g. `gateway` -> `Edge UI`, `telegraf` -> `Telegraf Data Agent`).
@@ -98,7 +106,20 @@ Gateway runs on port **8050** (`localhost:8050`).
 
 **Agent state control:** STATE section in sidebar has two separate buttons: `btn-agent-play` and `btn-agent-stop`. `setAgentUI(running)` in `common.js` updates their active classes and the status dot. Each button calls its own async function (`startAgent`, `stopAgent`) with `lockNav()`/`unlockNav()`.
 
-**Event log:** `app/services/event_log.py` — thread-safe ring buffer `deque(maxlen=150)`. Logs OPC UA test, MQTT test, deploy config, agent start/stop events. Badge in sidebar uses `sessionStorage("logsLastSeen")` to avoid reappearing after viewing.
+**Event log:** `app/services/event_log.py` — thread-safe ring buffer `deque(maxlen=150)`. Logs OPC UA test, MQTT test, deploy config, agent start/stop events. Badge in sidebar uses `sessionStorage("logsLastSeen")` to avoid reappearing after viewing. Logs modal has two tabs: Gateway events + Telegraf raw logs (loaded via `GET /api/telegraf/logs`).
+
+**Sidebar SYSTEM section order:** Preview Config → Logs → Help.
+
+## Help Page
+
+6 tabs: Getting Started | Dashboard | OPC UA | MQTT & Cloud | Telegraf | IIoT Concepts.
+
+- `app/routes/help.py` — simple Blueprint with a single `/help` route
+- `app/templates/help.html` — all content inline
+- CSS classes: `help-section`, `help-h2`, `help-p`, `help-steps`, `help-step`, `help-diagram`, `help-callout-{info/tip/warning}`, `help-card`, `help-table`, `help-list`, `help-code-block`, `help-conf-block`
+- `help-diagram pre` and `help-code-block` use hardcoded `'JetBrains Mono','Consolas','Courier New',monospace` — NOT `var(--font-mono)`. Keepler theme overrides `--font-mono` with Montserrat (proportional), which breaks ASCII art.
+- Screenshots served from `app/static/screenshots/` via `url_for('static', filename='screenshots/...')`. Do NOT use paths outside the static directory.
+- Telegraf tab includes an "Updating the gateway" section with `git pull` + `docker compose up --build -d gateway`.
 
 ## Dashboard Layout
 
