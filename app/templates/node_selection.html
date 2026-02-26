@@ -39,6 +39,67 @@
         </div>
     </div>
 </div>
+<!-- Message Format card -->
+<div class="card mt-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-send"></i> Message Format</span>
+        <span class="badge-status badge-clean d-none" id="publishing-saved-badge">
+            <i class="bi bi-check-circle"></i> Saved
+        </span>
+    </div>
+    <div class="card-body">
+        <div class="publishing-options">
+
+            <label class="publishing-option" id="opt-individual">
+                <input type="radio" name="publishing_mode" value="individual" id="mode-individual">
+                <div class="publishing-option-body">
+                    <div class="publishing-option-title">
+                        <i class="bi bi-layers"></i> Individual messages
+                    </div>
+                    <div class="publishing-option-desc">
+                        One MQTT message per node per cycle. Each message contains a single field.
+                        Easier to filter and route by node.
+                    </div>
+                    <div class="publishing-example">
+                        <div class="publishing-example-label">Example output (3 nodes → 3 messages)</div>
+<pre>{"fields": {"Temperature": 27.1},  "tags": {"id": "ns=1;i=1001"}, ...}
+{"fields": {"TankLevel": 77.4},    "tags": {"id": "ns=1;i=1005"}, ...}
+{"fields": {"MachineState": "Run"},"tags": {"id": "ns=1;i=1006"}, ...}</pre>
+                    </div>
+                </div>
+            </label>
+
+            <label class="publishing-option" id="opt-grouped">
+                <input type="radio" name="publishing_mode" value="grouped" id="mode-grouped">
+                <div class="publishing-option-body">
+                    <div class="publishing-option-title">
+                        <i class="bi bi-collection"></i> Grouped message
+                    </div>
+                    <div class="publishing-option-desc">
+                        All nodes combined into a single MQTT message per cycle.
+                        One payload with all fields. Best for dashboards and time-series ingestion.
+                        Uses Polling mode — per-node intervals are replaced by the group interval below.
+                    </div>
+                    <div class="publishing-example">
+                        <div class="publishing-example-label">Example output (3 nodes → 1 message)</div>
+<pre>{"fields": {"Temperature": 27.1, "TankLevel": 77.4, "MachineState": "Run"}, ...}</pre>
+                    </div>
+                    <div class="publishing-group-interval mt-3" id="group-interval-row">
+                        <label class="form-label mb-1" style="font-size:0.78rem;font-weight:600;">Group sampling interval</label>
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="text" id="group-interval" class="form-control form-control-sm"
+                                   style="width:7rem;" placeholder="10s">
+                            <span style="font-size:0.78rem;color:var(--text-muted);">
+                                Applied to all nodes. Use <code>s</code>, <code>ms</code>, <code>m</code>.
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </label>
+
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}

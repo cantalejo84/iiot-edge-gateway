@@ -466,6 +466,53 @@
                     </div>
                 </div>
 
+                <div class="help-section">
+                    <h2 class="help-h2">Message Format</h2>
+                    <p class="help-p">
+                        At the bottom of Node Selection you can choose how Telegraf packages and publishes the OPC UA readings to MQTT.
+                    </p>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="help-card">
+                                <div class="help-card-title"><i class="bi bi-layers"></i> Individual messages</div>
+                                <p>One MQTT message per node per cycle. Each payload contains a single field and the node's unique tag (<code>id</code>). Easier to filter and route downstream by variable.</p>
+                                <code class="help-code-block mt-2">{"fields": {"Temperature": 27.1},
+ "tags": {"id": "ns=1;i=1001"}, ...}
+{"fields": {"TankLevel": 77.4},
+ "tags": {"id": "ns=1;i=1005"}, ...}</code>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="help-card">
+                                <div class="help-card-title"><i class="bi bi-collection"></i> Grouped message</div>
+                                <p>All nodes combined into a single MQTT message per cycle. One payload with all fields. Best for dashboards, time-series databases, and when the consumer needs all values together.</p>
+                                <code class="help-code-block mt-2">{"fields": {
+  "Temperature": 27.1,
+  "TankLevel": 77.4,
+  "MachineState": "Running"
+}, ...}</code>
+                            </div>
+                        </div>
+                    </div>
+
+                    <table class="help-table">
+                        <thead><tr><th>Aspect</th><th>Individual</th><th>Grouped</th></tr></thead>
+                        <tbody>
+                            <tr><td>Messages per cycle</td><td>1 per node</td><td>1 total</td></tr>
+                            <tr><td>Per-node intervals</td><td>Respected</td><td>Replaced by group interval</td></tr>
+                            <tr><td>Sampling mode</td><td>Polling or Subscription</td><td>Polling only</td></tr>
+                            <tr><td>Telegraf config</td><td><code>[[inputs.opcua.nodes]]</code></td><td><code>[[inputs.opcua.group]]</code></td></tr>
+                            <tr><td>Best for</td><td>Per-variable routing, filtering</td><td>Dashboards, InfluxDB, time-series</td></tr>
+                        </tbody>
+                    </table>
+
+                    <div class="help-callout help-callout-warning mt-3">
+                        <div class="help-callout-title"><i class="bi bi-exclamation-triangle-fill"></i> Grouped mode and Subscription</div>
+                        In Grouped mode, Telegraf uses <code>[[inputs.opcua.group]]</code> which reads all nodes together at the configured group interval. Subscription mode (server-push) is not compatible with grouping because different nodes may update at different times — the group packet would never be complete. Grouped mode always uses polling.
+                    </div>
+                </div>
+
             </div>
 
             <div class="col-lg-4">

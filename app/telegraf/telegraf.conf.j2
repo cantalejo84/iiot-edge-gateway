@@ -29,6 +29,22 @@
   private_key = "{{ opcua.private_key }}"
 {%- endif %}
   optional_fields = ["DataType"]
+{%- if publishing.mode == "grouped" %}
+
+  # Message format: Grouped — all nodes in a single MQTT message per cycle
+  [[inputs.opcua.group]]
+    metric_name = "opcua"
+    sampling_interval = "{{ publishing.group_interval }}"
+{%- for node in nodes %}
+    [[inputs.opcua.group.nodes]]
+      name = "{{ node.name }}"
+      namespace = "{{ node.namespace }}"
+      identifier_type = "{{ node.identifier_type }}"
+      identifier = "{{ node.identifier }}"
+{%- endfor %}
+{%- else %}
+
+  # Message format: Individual — one MQTT message per node per cycle
 {% for node in nodes %}
   [[inputs.opcua.nodes]]
     name = "{{ node.name }}"
@@ -44,6 +60,7 @@
 {%- endif %}
 {%- endif %}
 {% endfor %}
+{%- endif %}
 # Internal metrics for self-monitoring
 [[inputs.internal]]
   collect_memstats = true

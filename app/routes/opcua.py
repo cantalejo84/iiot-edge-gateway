@@ -96,3 +96,15 @@ def save_selected_nodes():
         return jsonify({"error": "Expected a list of nodes"}), 400
     config_store.update_section("nodes", data)
     return jsonify({"ok": True})
+
+
+@opcua_bp.route("/api/opcua/publishing", methods=["GET"])
+def get_publishing():
+    return jsonify(config_store.get_section("publishing"))
+
+
+@opcua_bp.route("/api/opcua/publishing", methods=["POST"])
+def save_publishing():
+    data = request.get_json()
+    config_store.update_section("publishing", data)
+    return jsonify({"ok": True})

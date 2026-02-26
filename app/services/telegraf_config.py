@@ -11,5 +11,6 @@ def render_config(config):
         opcua=config.get("opcua", {}),
         nodes=config.get("nodes", []),
         mqtt=config.get("mqtt", {}),
+        publishing=config.get("publishing", {"mode": "individual", "group_interval": "10s"}),
         generated_at=datetime.now(timezone.utc).isoformat(),
     )

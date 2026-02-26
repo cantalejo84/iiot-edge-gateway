@@ -12,6 +12,10 @@ DEFAULT_CONFIG = {
         "private_key": ""
     },
     "nodes": [],
+    "publishing": {
+        "mode": "individual",
+        "group_interval": "10s"
+    },
     "mqtt": {
         "endpoint": "",
         "topic_pattern": "iiot/gateway/{{ .Hostname }}/{{ .PluginName }}",

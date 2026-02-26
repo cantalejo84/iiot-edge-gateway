@@ -2,9 +2,11 @@
 
 let nodes = [];
 let saveTimeout = null;
+let publishingTimeout = null;
 
 document.addEventListener("DOMContentLoaded", () => {
     loadNodes();
+    loadPublishing();
 
     document.getElementById("btn-clear-all").addEventListener("click", () => {
         if (confirm("Remove all selected nodes?")) {
@@ -13,7 +15,22 @@ document.addEventListener("DOMContentLoaded", () => {
             saveNodes();
         }
     });
+
+    // Publishing mode radios
+    document.querySelectorAll("input[name='publishing_mode']").forEach(radio => {
+        radio.addEventListener("change", () => {
+            updateGroupIntervalVisibility();
+            schedulePublishingSave();
+        });
+    });
+
+    // Group interval input
+    document.getElementById("group-interval").addEventListener("input", () => {
+        schedulePublishingSave();
+    });
 });
+
+// ── Nodes ────────────────────────────────────────────────────────
 
 async function loadNodes() {
     const data = await fetchJSON("/api/opcua/nodes");
@@ -64,7 +81,7 @@ function renderTable() {
                 </div>
             </td>
             <td>
-                <button class="btn btn-sm btn-outline-danger" data-remove="${idx}" title="Remove">
+                <button class="btn btn-sm btn-outline-secondary" data-remove="${idx}" title="Remove">
                     <i class="bi bi-x"></i>
                 </button>
             </td>
@@ -102,10 +119,44 @@ function scheduleAutoSave() {
 
 async function saveNodes() {
     const data = await fetchJSON("/api/opcua/nodes", { method: "POST", body: nodes });
-    if (data.ok) {
-        updateConfigStatus(true);
-    }
+    if (data.ok) updateConfigStatus(true);
 }
+
+// ── Publishing ───────────────────────────────────────────────────
+
+async function loadPublishing() {
+    const data = await fetchJSON("/api/opcua/publishing");
+    const mode = data.mode || "individual";
+    const interval = data.group_interval || "10s";
+
+    const radio = document.querySelector(`input[name='publishing_mode'][value='${mode}']`);
+    if (radio) radio.checked = true;
+
+    document.getElementById("group-interval").value = interval;
+    updateGroupIntervalVisibility();
+}
+
+function updateGroupIntervalVisibility() {
+    const isGrouped = document.getElementById("mode-grouped").checked;
+    document.getElementById("group-interval-row").style.display = isGrouped ? "" : "none";
+}
+
+function schedulePublishingSave() {
+    clearTimeout(publishingTimeout);
+    publishingTimeout = setTimeout(savePublishing, 800);
+}
+
+async function savePublishing() {
+    const mode = document.querySelector("input[name='publishing_mode']:checked")?.value || "individual";
+    const group_interval = document.getElementById("group-interval").value.trim() || "10s";
+    const data = await fetchJSON("/api/opcua/publishing", {
+        method: "POST",
+        body: { mode, group_interval }
+    });
+    if (data.ok) updateConfigStatus(true);
+}
+
+// ── Helpers ──────────────────────────────────────────────────────
 
 function esc(str) {
     const div = document.createElement("div");
