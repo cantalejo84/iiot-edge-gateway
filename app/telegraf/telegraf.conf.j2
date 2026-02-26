@@ -33,7 +33,6 @@
 
   # Message format: Grouped — all nodes in a single MQTT message per cycle
   [[inputs.opcua.group]]
-    metric_name = "opcua"
     sampling_interval = "{{ publishing.group_interval }}"
 {%- for node in nodes %}
     [[inputs.opcua.group.nodes]]

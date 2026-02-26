@@ -1,4 +1,5 @@
 import os
+import time
 from flask import Blueprint, jsonify, current_app
 
 from app.services import config_store
@@ -33,10 +34,48 @@ def generate_config():
 
     if restart_result.get("ok"):
         event_log.log("info", "telegraf", "Config applied and agent restarted")
+        # Wait briefly then check Telegraf logs for config parse errors
+        time.sleep(3)
+        error_line = _get_telegraf_config_error()
+        if error_line:
+            event_log.log("error", "telegraf", "Telegraf failed to load config", detail=error_line)
     else:
         event_log.log("error", "telegraf", "Config applied but restart failed", detail=restart_result.get("error"))
 
     return jsonify({"ok": True, "path": output_path, "restart": restart_result})
+
+
+def _get_telegraf_config_error():
+    """Read recent Telegraf container logs and return the first error line, if any."""
+    try:
+        import docker
+        client = docker.from_env()
+        containers = client.containers.list(all=True, filters={"name": "telegraf"})
+        if not containers:
+            return None
+        logs = containers[0].logs(tail=30, stderr=True, stdout=True).decode("utf-8", errors="replace")
+        for line in reversed(logs.splitlines()):
+            if " E! " in line:
+                return line.strip()
+        return None
+    except Exception:
+        return None
+
+
+@telegraf_bp.route("/api/telegraf/logs", methods=["GET"])
+def telegraf_logs():
+    """Return recent Telegraf container log lines."""
+    try:
+        import docker
+        client = docker.from_env()
+        containers = client.containers.list(all=True, filters={"name": "telegraf"})
+        if not containers:
+            return jsonify({"ok": True, "lines": []})
+        raw = containers[0].logs(tail=50, stderr=True, stdout=True).decode("utf-8", errors="replace")
+        lines = [l for l in raw.splitlines() if l.strip()]
+        return jsonify({"ok": True, "lines": lines})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
 
 
 def _restart_telegraf():

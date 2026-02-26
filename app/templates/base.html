@@ -183,15 +183,37 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-0">
-                    <div id="logs-empty" class="logs-empty">
-                        <i class="bi bi-check-circle" style="font-size:1.5rem;opacity:0.3;"></i>
-                        <div>No events recorded yet</div>
+                    <!-- Tab nav -->
+                    <ul class="nav nav-tabs px-3 pt-2 border-bottom" id="logsTabs">
+                        <li class="nav-item">
+                            <button class="nav-link active" id="tab-gateway-btn" data-logs-tab="gateway">
+                                <i class="bi bi-cpu"></i> Gateway
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" id="tab-telegraf-btn" data-logs-tab="telegraf">
+                                <i class="bi bi-terminal"></i> Telegraf
+                            </button>
+                        </li>
+                    </ul>
+                    <!-- Gateway events -->
+                    <div id="logs-panel-gateway">
+                        <div id="logs-empty" class="logs-empty">
+                            <i class="bi bi-check-circle" style="font-size:1.5rem;opacity:0.3;"></i>
+                            <div>No events recorded yet</div>
+                        </div>
+                        <div id="logs-list"></div>
                     </div>
-                    <div id="logs-list"></div>
+                    <!-- Telegraf raw logs -->
+                    <div id="logs-panel-telegraf" style="display:none;">
+                        <div id="telegraf-logs-content" class="telegraf-raw-logs">
+                            <div class="logs-empty"><i class="bi bi-arrow-clockwise" style="font-size:1.5rem;opacity:0.3;"></i><div>Loading...</div></div>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-sm btn-outline-danger" id="btn-clear-logs">
-                        <i class="bi bi-trash"></i> Clear
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-clear-logs">
+                        <i class="bi bi-trash"></i> Clear Gateway logs
                     </button>
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
                 </div>

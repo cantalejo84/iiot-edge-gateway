@@ -1547,6 +1547,35 @@ body {
     color: #fff;
 }
 
+/* ── Telegraf raw logs panel ──────────────────────────────────── */
+.telegraf-raw-logs {
+    max-height: 420px;
+    overflow-y: auto;
+    padding: 0.5rem 0;
+    font-family: 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
+    font-size: 0.72rem;
+}
+
+.tlog-line {
+    padding: 0.15rem 1rem;
+    line-height: 1.5;
+    border-left: 3px solid transparent;
+    color: var(--text-secondary);
+    word-break: break-all;
+}
+
+.tlog-error {
+    color: var(--danger);
+    background: color-mix(in srgb, var(--danger) 6%, transparent);
+    border-color: var(--danger);
+}
+
+.tlog-warn {
+    color: var(--warning);
+    background: color-mix(in srgb, var(--warning) 6%, transparent);
+    border-color: var(--warning);
+}
+
 /* ── Message Format (publishing) ─────────────────────────────── */
 .publishing-options {
     display: flex;

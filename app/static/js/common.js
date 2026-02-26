@@ -249,16 +249,17 @@ document.addEventListener("DOMContentLoaded", () => {
         }).catch(() => {});
     }
     // Logs modal
+    let activeLogsTab = "gateway";
     const logsBtn = document.getElementById("btn-open-logs");
     if (logsBtn) {
         logsBtn.addEventListener("click", async (e) => {
             e.preventDefault();
-            // Mark all current logs as seen
             sessionStorage.setItem("logsLastSeen", new Date().toISOString());
             const badge = document.getElementById("logs-error-badge");
             if (badge) badge.classList.add("d-none");
             const events = await fetchJSON("/api/logs");
             renderLogs(events);
+            switchLogsTab("gateway");
             new bootstrap.Modal(document.getElementById("logsModal")).show();
         });
     }
@@ -268,6 +269,39 @@ document.addEventListener("DOMContentLoaded", () => {
             await fetchJSON("/api/logs/clear", { method: "POST" });
             renderLogs([]);
         });
+    }
+    // Logs tab switching
+    document.querySelectorAll("[data-logs-tab]").forEach(btn => {
+        btn.addEventListener("click", () => switchLogsTab(btn.dataset.logsTab));
+    });
+    async function switchLogsTab(tab) {
+        activeLogsTab = tab;
+        document.querySelectorAll("[data-logs-tab]").forEach(b => b.classList.toggle("active", b.dataset.logsTab === tab));
+        document.getElementById("logs-panel-gateway").style.display = tab === "gateway" ? "" : "none";
+        document.getElementById("logs-panel-telegraf").style.display = tab === "telegraf" ? "" : "none";
+        if (tab === "telegraf") loadTelegrafLogs();
+    }
+    async function loadTelegrafLogs() {
+        const container = document.getElementById("telegraf-logs-content");
+        try {
+            const data = await fetchJSON("/api/telegraf/logs");
+            if (!data.ok || !data.lines || data.lines.length === 0) {
+                container.innerHTML = '<div class="logs-empty"><i class="bi bi-terminal" style="font-size:1.5rem;opacity:0.3;"></i><div>No Telegraf logs available</div></div>';
+                return;
+            }
+            container.innerHTML = data.lines.map(line => {
+                let cls = "tlog-info";
+                if (line.includes(" E! ")) cls = "tlog-error";
+                else if (line.includes(" W! ")) cls = "tlog-warn";
+                return `<div class="tlog-line ${cls}">${escHtml(line)}</div>`;
+            }).join("");
+            container.scrollTop = container.scrollHeight;
+        } catch (e) {
+            container.innerHTML = '<div class="logs-empty text-danger">Failed to load Telegraf logs</div>';
+        }
+    }
+    function escHtml(s) {
+        return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
     }
 
     // Poll error badge every 30s (lightweight: just a count check)

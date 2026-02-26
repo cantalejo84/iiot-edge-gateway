@@ -31,7 +31,11 @@ services:
           sleep 3
         done
         echo "Config found, starting Telegraf."
-        exec telegraf --config /etc/telegraf-conf/telegraf.conf
+        while true; do
+          telegraf --config /etc/telegraf-conf/telegraf.conf
+          echo "Telegraf exited (code $?). Waiting 10s before retry..."
+          sleep 10
+        done
     volumes:
       - ./telegraf:/etc/telegraf-conf:ro
       - ./data/certs:/etc/telegraf/certs:ro
