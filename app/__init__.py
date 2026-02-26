@@ -21,11 +21,13 @@ def create_app():
     from app.routes.mqtt import mqtt_bp
     from app.routes.telegraf import telegraf_bp
     from app.routes.dashboard import dashboard_bp
+    from app.routes.help import help_bp
 
     app.register_blueprint(opcua_bp)
     app.register_blueprint(mqtt_bp)
     app.register_blueprint(telegraf_bp)
     app.register_blueprint(dashboard_bp)
+    app.register_blueprint(help_bp)
 
     @app.route("/")
     def index():

@@ -93,6 +93,11 @@
                         <span id="logs-error-badge" class="logs-error-badge d-none"></span>
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.path == '/help' %}active{% endif %}" href="/help">
+                        <i class="bi bi-book"></i> Help
+                    </a>
+                </li>
                 <li class="nav-section-label nav-section-state">STATE</li>
                 <li class="nav-item">
                     <div class="state-row">
