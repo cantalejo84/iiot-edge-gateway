@@ -55,6 +55,26 @@ Open **http://localhost:8050** in your browser.
 
 > A demo OPC UA server and Mosquitto MQTT broker are included for testing. No external services needed to try it out.
 
+## Uninstall / Remove everything
+
+To completely remove the application, all containers, images, volumes, and configuration data:
+
+```bash
+# Stop and remove containers, networks and volumes (metrics data)
+docker compose down -v
+
+# Remove the Docker images built for this project
+docker compose down --rmi all
+
+# Delete all local data (config, certificates, generated Telegraf config)
+rm -rf data/ telegraf/telegraf.conf
+
+# Delete the repository
+cd .. && rm -rf iiot-edge-gateway
+```
+
+> **Note:** `rm -rf data/` permanently deletes your OPC UA and MQTT configuration and any uploaded TLS certificates. Make sure to back up `data/config.json` and `data/certs/` if you want to restore them later.
+
 ---
 
 ## Getting Started

@@ -4,6 +4,24 @@
 
 {% block content %}
 
+{% if never_deployed %}
+<div class="first-deploy-banner mb-4">
+    <div class="first-deploy-icon"><i class="bi bi-rocket-takeoff"></i></div>
+    <div class="first-deploy-body">
+        <div class="first-deploy-title">Welcome — gateway not yet configured</div>
+        <div class="first-deploy-desc">
+            Configure your <a href="/opcua/config" class="first-deploy-link">OPC UA input</a>
+            and <a href="/mqtt/config" class="first-deploy-link">MQTT output</a>,
+            then click <strong>Deploy config</strong> in the sidebar to start the data pipeline.
+            Telegraf is running and waiting for the first configuration.
+        </div>
+    </div>
+    <button class="btn btn-apply first-deploy-btn" id="btn-apply-banner" data-action="generate-config">
+        <i class="bi bi-cloud-upload"></i> Deploy config
+    </button>
+</div>
+{% endif %}
+
 <!-- Pipeline Health -->
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">

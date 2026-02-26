@@ -21,9 +21,19 @@ services:
   telegraf:
     image: telegraf:1.33
     user: "0:0"
-    entrypoint: ["/bin/sh", "-c", "touch /tmp/telegraf-metrics/metrics.json && telegraf"]
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        touch /tmp/telegraf-metrics/metrics.json
+        echo "Waiting for config to be deployed from the UI..."
+        while [ ! -f /etc/telegraf-conf/telegraf.conf ]; do
+          sleep 3
+        done
+        echo "Config found, starting Telegraf."
+        exec telegraf --config /etc/telegraf-conf/telegraf.conf
     volumes:
-      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+      - ./telegraf:/etc/telegraf-conf:ro
       - ./data/certs:/etc/telegraf/certs:ro
       - telegraf-metrics:/tmp/telegraf-metrics
     ports:

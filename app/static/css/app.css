@@ -1547,6 +1547,51 @@ body {
     color: #fff;
 }
 
+/* ── First-deploy banner ──────────────────────────────────────── */
+.first-deploy-banner {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    border-left: 4px solid var(--accent);
+    border-radius: 10px;
+    padding: 1.1rem 1.25rem;
+}
+
+.first-deploy-icon {
+    font-size: 1.6rem;
+    color: var(--accent);
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.first-deploy-body { flex: 1; }
+
+.first-deploy-title {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.3rem;
+}
+
+.first-deploy-desc {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.first-deploy-link {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.first-deploy-link:hover { text-decoration: underline; }
+
+.first-deploy-btn { flex-shrink: 0; }
+
 /* ── Help & Documentation ─────────────────────────────────────── */
 .help-tabs .nav-link {
     font-family: var(--font-mono);

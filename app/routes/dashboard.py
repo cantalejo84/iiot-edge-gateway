@@ -1,4 +1,5 @@
-from flask import Blueprint, jsonify, render_template
+import os
+from flask import Blueprint, current_app, jsonify, render_template
 
 from app.services import config_store, event_log
 from app.services.system_monitor import (
@@ -14,7 +15,9 @@ dashboard_bp = Blueprint("dashboard", __name__)
 @dashboard_bp.route("/dashboard")
 def dashboard_page():
     is_dirty = config_store.is_dirty()
-    return render_template("dashboard.html", is_dirty=is_dirty)
+    conf_path = os.path.join(current_app.config["TELEGRAF_OUTPUT_DIR"], "telegraf.conf")
+    never_deployed = not os.path.isfile(conf_path)
+    return render_template("dashboard.html", is_dirty=is_dirty, never_deployed=never_deployed)
 
 
 @dashboard_bp.route("/api/dashboard/health", methods=["GET"])
