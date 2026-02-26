@@ -45,11 +45,16 @@ def save_opcua_config():
 @opcua_bp.route("/api/opcua/test-connection", methods=["POST"])
 def test_opcua_connection():
     from app.services.opcua_client import test_connection
+    from app.services import event_log
     config = config_store.get_section("opcua")
     data = request.get_json() or {}
-    # Allow overriding with request data for testing before save
     merged = {**config, **data}
+    endpoint = merged.get("endpoint", "")
     result = asyncio.run(test_connection(merged))
+    if result.get("ok"):
+        event_log.log("info", "opcua", f"Connection OK → {endpoint}")
+    else:
+        event_log.log("error", "opcua", f"Connection failed → {endpoint}", detail=result.get("detail") or result.get("error"))
     return jsonify(result)
 
 

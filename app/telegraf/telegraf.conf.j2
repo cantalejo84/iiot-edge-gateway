@@ -58,13 +58,18 @@
   topic = '{{ mqtt.topic_pattern }}'
   qos = {{ mqtt.qos }}
   data_format = "{{ mqtt.data_format }}"
-{%- if mqtt.tls_ca %}
+{%- if mqtt.username %}
+  username = "{{ mqtt.username }}"
+{%- endif %}
+{%- if mqtt.password %}
+  password = "{{ mqtt.password }}"
+{%- endif %}
+{%- if mqtt.tls_ca and ('mqtts://' in mqtt.endpoint or 'ssl://' in mqtt.endpoint) %}
   tls_ca = "{{ mqtt.tls_ca }}"
   tls_cert = "{{ mqtt.tls_cert }}"
   tls_key = "{{ mqtt.tls_key }}"
 {%- endif %}
-  [outputs.mqtt.tagpass]
-    input = ["opcua"]
+  namepass = ["opcua"]
 {%- endif %}
 
 # File output for internal metrics (read by gateway dashboard)

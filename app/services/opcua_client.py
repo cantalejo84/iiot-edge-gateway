@@ -36,14 +36,31 @@ def _build_client(config):
     return client
 
 
+def _friendly_error(e):
+    msg = str(e)
+    if "Errno 111" in msg or "Connect call failed" in msg:
+        return "Server unreachable — connection refused"
+    if "Errno 110" in msg or "timed out" in msg.lower() or "TimeoutError" in type(e).__name__:
+        return "Connection timed out — check endpoint and network"
+    if "Errno -2" in msg or "Name or service not known" in msg or "nodename nor servname" in msg:
+        return "Hostname not found — check the endpoint URL"
+    if "BadUserAccessDenied" in msg or "BadIdentityTokenRejected" in msg:
+        return "Authentication failed — check credentials"
+    if "BadSecurityChecksFailed" in msg or "BadCertificate" in msg:
+        return "Security/certificate error"
+    if "BadTcpEndpointUrlInvalid" in msg or "Invalid URL" in msg:
+        return "Invalid endpoint URL"
+    return "Connection failed — server not available"
+
+
 async def test_connection(config):
     try:
         client = _build_client(config)
         async with client:
-            server_state = await client.nodes.server.read_browse_name()
-            return {"ok": True, "server": str(server_state)}
+            server_name = await client.nodes.server.read_browse_name()
+            return {"ok": True, "server": server_name.Name}
     except Exception as e:
-        return {"ok": False, "error": str(e)}
+        return {"ok": False, "error": _friendly_error(e), "detail": str(e)}
 
 
 async def browse_children(config, node_id_str):

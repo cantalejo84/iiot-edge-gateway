@@ -3,102 +3,215 @@
 {% block page_title %}Dashboard{% endblock %}
 
 {% block content %}
-<!-- System Health -->
+
+<!-- Pipeline Health -->
 <div class="card mb-4">
-    <div class="card-header"><i class="bi bi-heart-pulse"></i> System Health</div>
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-activity"></i> Pipeline Health</span>
+        <span class="pipeline-status-badge" id="pipeline-status-badge">
+            <span class="pipeline-status-dot" id="pipeline-status-dot"></span>
+            <span id="pipeline-status-label">Checking...</span>
+        </span>
+    </div>
     <div class="card-body">
-        <div class="row g-4">
-            <div class="col-md-4">
-                <div class="metric-card">
-                    <div class="metric-value" id="cpu-value">--</div>
-                    <div class="metric-label">CPU Usage</div>
-                    <div class="progress mt-2">
-                        <div class="progress-bar" id="cpu-bar" style="width: 0%"></div>
+        <div class="pipeline-flow-v2" id="pipeline-flow">
+
+            <!-- OPC UA Read (big) -->
+            <div class="pf-node pf-node-opcua" id="pf-opcua">
+                <div class="pf-pulse-ring"></div>
+                <div class="pf-node-icon"><i class="bi bi-cpu"></i></div>
+                <div class="pf-node-label">OPC UA Read</div>
+                <div class="pf-node-value" id="p-opcua-read">--</div>
+                <div class="pf-quality-row">
+                    <span class="pf-quality-chip pf-q-ok" data-bs-toggle="tooltip" title="Successful node reads">
+                        <i class="bi bi-check-lg"></i> <span id="q-read-success">--</span>
+                    </span>
+                    <span class="pf-quality-chip pf-q-err" data-bs-toggle="tooltip" title="Failed node reads">
+                        <i class="bi bi-x-lg"></i> <span id="q-read-error">--</span>
+                    </span>
+                    <span class="pf-quality-chip pf-q-rate" data-bs-toggle="tooltip" title="Read success rate">
+                        <span id="q-success-rate">--</span>
+                    </span>
+                    <div class="pf-quality-bar">
+                        <div class="pf-quality-bar-fill" id="q-success-bar"></div>
+                        <div class="pf-quality-bar-err" id="q-error-bar"></div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="metric-card">
-                    <div class="metric-value" id="ram-value">--</div>
-                    <div class="metric-label">Memory Usage</div>
-                    <div class="progress mt-2">
-                        <div class="progress-bar" id="ram-bar" style="width: 0%"></div>
-                    </div>
+
+            <!-- Connector 1 -->
+            <div class="pf-connector">
+                <div class="pf-connector-line"></div>
+                <div class="pf-connector-x"><i class="bi bi-x"></i></div>
+                <div class="flow-dot"></div>
+                <div class="flow-dot"></div>
+                <div class="flow-dot"></div>
+            </div>
+
+            <!-- Buffer -->
+            <div class="pf-node pf-node-buffer">
+                <div class="pf-node-label">Buffer</div>
+                <div class="pf-buffer-bar">
+                    <div class="pf-buffer-fill" id="p-buffer-fill" style="width:0%"></div>
+                </div>
+                <div class="pf-node-sub" id="p-buffer-text">0 / 10,000</div>
+            </div>
+
+            <!-- Connector 2 -->
+            <div class="pf-connector">
+                <div class="pf-connector-line"></div>
+                <div class="pf-connector-x"><i class="bi bi-x"></i></div>
+                <div class="flow-dot"></div>
+                <div class="flow-dot"></div>
+                <div class="flow-dot"></div>
+            </div>
+
+            <!-- MQTT Send -->
+            <div class="pf-node pf-node-mqtt">
+                <div class="pf-node-icon"><i class="bi bi-cloud-arrow-up"></i></div>
+                <div class="pf-node-label">MQTT Send</div>
+                <div class="pf-node-value" id="p-mqtt-written">--</div>
+            </div>
+        </div>
+
+        <!-- Stats row -->
+        <div class="dash-grid dash-grid-4 mt-3">
+            <div class="pipeline-stat">
+                <div class="pipeline-stat-value" id="p-scan-time">--</div>
+                <div class="pipeline-stat-label">
+                    Scan Time
+                    <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Time Telegraf takes to read all OPC UA nodes per cycle. If this exceeds the polling interval, data gaps may occur."></i>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="metric-card">
-                    <div class="metric-value" id="disk-value">--</div>
-                    <div class="metric-label">Disk Usage</div>
-                    <div class="progress mt-2">
-                        <div class="progress-bar" id="disk-bar" style="width: 0%"></div>
-                    </div>
+            <div class="pipeline-stat">
+                <div class="pipeline-stat-value" id="p-dropped">--</div>
+                <div class="pipeline-stat-label">
+                    Dropped
+                    <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Messages discarded because the MQTT output buffer was full."></i>
+                </div>
+            </div>
+            <div class="pipeline-stat">
+                <div class="pipeline-stat-value" id="p-errors">--</div>
+                <div class="pipeline-stat-label">
+                    Errors (OPC / MQTT)
+                    <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Connection or read errors on OPC UA (left) and MQTT write errors (right)."></i>
+                </div>
+            </div>
+            <div class="pipeline-stat">
+                <div class="pipeline-stat-value" id="p-loss">--</div>
+                <div class="pipeline-stat-label">
+                    Loss Rate
+                    <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Percentage of OPC UA reads that did not reach MQTT. Should be 0%."></i>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Service Status -->
+<!-- System Health + Gateway Info -->
 <div class="row g-4 mb-4">
+
+    <!-- System Health -->
     <div class="col-md-6">
-        <div class="card">
-            <div class="card-header"><i class="bi bi-hdd-stack"></i> Service Status</div>
+        <div class="card h-100">
+            <div class="card-header"><i class="bi bi-cpu"></i> System Health</div>
             <div class="card-body">
-                <div class="d-flex flex-column gap-3">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="status-indicator">
-                            <span class="status-dot online"></span> Gateway (Flask)
-                        </span>
-                        <span class="badge text-bg-success">Running</span>
+                <div class="dash-grid dash-grid-2">
+                    <div class="hw-metric">
+                        <div class="hw-metric-header">
+                            <span class="hw-metric-label">CPU</span>
+                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Processor usage of the gateway host."></i>
+                        </div>
+                        <div class="hw-metric-value" id="cpu-value">--</div>
+                        <div class="progress mt-1">
+                            <div class="progress-bar" id="cpu-bar" style="width:0%"></div>
+                        </div>
                     </div>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="status-indicator">
-                            <span class="status-dot" id="telegraf-dot"></span> Telegraf
-                        </span>
-                        <span class="badge" id="telegraf-badge">Checking...</span>
+                    <div class="hw-metric">
+                        <div class="hw-metric-header">
+                            <span class="hw-metric-label">Memory</span>
+                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="RAM usage. If MQTT broker is unreachable, Telegraf's buffer grows and RAM increases."></i>
+                        </div>
+                        <div class="hw-metric-value" id="ram-value">--</div>
+                        <div class="progress mt-1">
+                            <div class="progress-bar" id="ram-bar" style="width:0%"></div>
+                        </div>
+                        <div class="hw-metric-detail" id="ram-detail"></div>
+                    </div>
+                    <div class="hw-metric">
+                        <div class="hw-metric-header">
+                            <span class="hw-metric-label">Disk</span>
+                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Disk space used on the gateway. Full disk can crash the gateway."></i>
+                        </div>
+                        <div class="hw-metric-value" id="disk-value">--</div>
+                        <div class="progress mt-1">
+                            <div class="progress-bar" id="disk-bar" style="width:0%"></div>
+                        </div>
+                    </div>
+                    <div class="hw-metric">
+                        <div class="hw-metric-header">
+                            <span class="hw-metric-label">Network I/O</span>
+                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Total bytes sent and received since boot."></i>
+                        </div>
+                        <div class="hw-metric-net">
+                            <div><i class="bi bi-arrow-up"></i> <span id="net-sent">--</span></div>
+                            <div><i class="bi bi-arrow-down"></i> <span id="net-recv">--</span></div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Gateway Info -->
     <div class="col-md-6">
-        <div class="card">
-            <div class="card-header"><i class="bi bi-arrow-left-right"></i> OPC UA → MQTT Pipeline</div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-6">
-                        <div class="metric-card">
-                            <div class="metric-value" id="opcua-gathered" style="font-size: 1.5rem;">--</div>
-                            <div class="metric-label">OPC UA Read</div>
-                        </div>
+        <div class="card h-100">
+            <div class="card-header"><i class="bi bi-info-circle"></i> Gateway Info</div>
+            <div class="card-body d-flex flex-column gap-3">
+
+                <!-- Components -->
+                <div>
+                    <div class="gw-section-label">
+                        Components
+                        <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Status of all gateway components."></i>
                     </div>
-                    <div class="col-6">
-                        <div class="metric-card">
-                            <div class="metric-value" id="mqtt-written" style="font-size: 1.5rem;">--</div>
-                            <div class="metric-label">MQTT Sent</div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="metric-card">
-                            <div class="metric-value" id="mqtt-dropped" style="font-size: 1.5rem; color: var(--warning);">--</div>
-                            <div class="metric-label">MQTT Dropped</div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="metric-card">
-                            <div class="metric-value" id="opcua-errors" style="font-size: 1.5rem; color: var(--danger);">--</div>
-                            <div class="metric-label">OPC UA Errors</div>
-                        </div>
+                    <div class="container-status-list" id="g-containers">
+                        <span class="text-muted" style="font-size:0.75rem;">Checking...</span>
                     </div>
                 </div>
-                <div class="text-center mt-2" style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted);">
-                    Since last restart · Updated: <span id="last-updated">--</span>
+
+                <!-- Metrics -->
+                <div class="gw-meta-row">
+                    <div class="gw-meta-item">
+                        <div class="gw-meta-label">
+                            Online for
+                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Time since the gateway container was last started."></i>
+                        </div>
+                        <div class="gw-meta-value" id="g-uptime">--</div>
+                    </div>
+                    <div class="gw-meta-item">
+                        <div class="gw-meta-label">
+                            Nodes configured
+                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="OPC UA nodes selected for data collection."></i>
+                        </div>
+                        <div class="gw-meta-value" id="g-nodes">--</div>
+                    </div>
+                    <div class="gw-meta-item">
+                        <div class="gw-meta-label">
+                            Last config applied
+                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="When the Telegraf configuration was last generated and applied."></i>
+                        </div>
+                        <div class="gw-meta-value" id="g-last-config">--</div>
+                    </div>
                 </div>
+
             </div>
         </div>
     </div>
+</div>
+
+<div class="text-center mb-3" style="font-family:var(--font-mono);font-size:0.65rem;color:var(--text-muted);">
+    Auto-refresh every 5s · Counters since last Telegraf restart · Updated: <span id="last-updated">--</span>
 </div>
 {% endblock %}
 

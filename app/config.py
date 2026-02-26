@@ -19,7 +19,9 @@ DEFAULT_CONFIG = {
         "data_format": "json",
         "tls_ca": "",
         "tls_cert": "",
-        "tls_key": ""
+        "tls_key": "",
+        "username": "",
+        "password": ""
     },
     "_meta": {
         "last_modified": None,

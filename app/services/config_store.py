@@ -49,9 +49,31 @@ def update_section(section, data):
 
 
 def mark_applied():
+    with _lock:
+        path = _config_path()
+        if not os.path.exists(path):
+            return
+        with open(path, "r") as f:
+            config = json.load(f)
+        now = datetime.now(timezone.utc).isoformat()
+        config["_meta"]["last_applied"] = now
+        config["_meta"]["last_modified"] = now
+        # Snapshot the deployed mqtt config so the tail subscriber uses the right broker
+        config["_meta"]["applied_mqtt"] = copy.deepcopy(config.get("mqtt", {}))
+        tmp_path = path + ".tmp"
+        with open(tmp_path, "w") as f:
+            json.dump(config, f, indent=2)
+        os.replace(tmp_path, path)
+
+
+def get_applied_section(section):
+    """Return the last-deployed snapshot of a config section, or current if never deployed."""
     config = load()
-    config["_meta"]["last_applied"] = datetime.now(timezone.utc).isoformat()
-    save(config)
+    meta = config.get("_meta", {})
+    key = f"applied_{section}"
+    if key in meta:
+        return meta[key]
+    return config.get(section, {})
 
 
 def is_dirty():
