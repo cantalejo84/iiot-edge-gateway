@@ -28,10 +28,16 @@
   certificate = "{{ opcua.certificate }}"
   private_key = "{{ opcua.private_key }}"
 {%- endif %}
+{%- if publishing.mode == "grouped" %}
+  # Grouped mode: id tag excluded so the merge processor can combine all nodes
+  tagexclude = ["id"]
+{%- else %}
   optional_fields = ["DataType"]
+{%- endif %}
 {%- if publishing.mode == "grouped" %}
 
-  # Message format: Grouped — all nodes in a single MQTT message per cycle
+  # Message format: Grouped — nodes share sampling interval, merge processor
+  # combines them into a single MQTT message per cycle
   [[inputs.opcua.group]]
     sampling_interval = "{{ publishing.group_interval }}"
 {%- for node in nodes %}
@@ -63,6 +69,17 @@
 # Internal metrics for self-monitoring
 [[inputs.internal]]
   collect_memstats = true
+{%- if publishing.mode == "grouped" %}
+
+###############################################################################
+#                            AGGREGATORS                                       #
+###############################################################################
+
+# Merge all opcua node metrics into a single message per flush cycle
+[[aggregators.merge]]
+  period = "{{ publishing.group_interval }}"
+  namepass = ["opcua"]
+{%- endif %}
 
 ###############################################################################
 #                            OUTPUT PLUGINS                                    #
