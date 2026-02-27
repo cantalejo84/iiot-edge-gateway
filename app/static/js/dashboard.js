@@ -9,6 +9,15 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     refreshAll();
     setInterval(refreshAll, 5000);
+
+    document.getElementById("g-containers").addEventListener("click", async (e) => {
+        const btn = e.target.closest(".demo-toggle-btn");
+        if (!btn) return;
+        const { service, action } = btn.dataset;
+        btn.disabled = true;
+        await fetchJSON(`/api/dashboard/container/${service}/${action}`, { method: "POST" });
+        await refreshGatewayInfo();
+    });
 });
 
 async function refreshAll() {
@@ -166,10 +175,19 @@ async function refreshGatewayInfo() {
             list.innerHTML = d.containers.map(c => {
                 const isRunning = c.status === "running";
                 const label = c.status.charAt(0).toUpperCase() + c.status.slice(1);
-                return `<div class="container-status-item">
+                const btn = c.is_demo
+                    ? `<button class="btn btn-xs demo-toggle-btn ms-auto"
+                           data-service="${c.service}"
+                           data-action="${isRunning ? "stop" : "start"}"
+                           title="${isRunning ? "Stop" : "Start"} demo">
+                           ${isRunning ? "⏹" : "▶"}
+                       </button>`
+                    : "";
+                return `<div class="container-status-item d-flex align-items-center">
                     <span class="status-dot ${isRunning ? "online" : "offline"}"></span>
                     <span class="container-name">${c.name}</span>
-                    <span class="container-state ${isRunning ? "" : "text-danger"}">${label}</span>
+                    <span class="container-state ${isRunning ? "" : "text-danger"} me-auto">${label}</span>
+                    ${btn}
                 </div>`;
             }).join("");
         } else {

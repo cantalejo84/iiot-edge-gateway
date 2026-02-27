@@ -166,6 +166,8 @@ def get_container_status():
             "opcua-demo-server": "OPC-UA Server Demo",
         }
 
+        demo_services = {"opcua-demo-server", "mosquitto"}
+
         result = []
         for c in project_containers:
             if c.labels.get("com.docker.compose.project") != my_project:
@@ -177,6 +179,8 @@ def get_container_status():
             result.append(
                 {
                     "name": display_names.get(service, service),
+                    "service": service,
+                    "is_demo": service in demo_services,
                     "status": status,
                 }
             )

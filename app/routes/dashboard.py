@@ -43,6 +43,45 @@ def gateway_info():
     return jsonify(get_gateway_info())
 
 
+_DEMO_SERVICES = {"opcua-demo-server", "mosquitto"}
+
+
+@dashboard_bp.route("/api/dashboard/container/<service>/start", methods=["POST"])
+def container_start(service):
+    if service not in _DEMO_SERVICES:
+        return jsonify({"ok": False, "error": "Not a demo service"}), 403
+    try:
+        import docker
+
+        client = docker.from_env()
+        containers = client.containers.list(all=True, filters={"name": service})
+        for c in containers:
+            c.start()
+        event_log.log("info", "demo", f"{service} started")
+        return jsonify({"ok": True})
+    except Exception as e:
+        event_log.log("error", "demo", f"Failed to start {service}", detail=str(e))
+        return jsonify({"ok": False, "error": str(e)})
+
+
+@dashboard_bp.route("/api/dashboard/container/<service>/stop", methods=["POST"])
+def container_stop(service):
+    if service not in _DEMO_SERVICES:
+        return jsonify({"ok": False, "error": "Not a demo service"}), 403
+    try:
+        import docker
+
+        client = docker.from_env()
+        containers = client.containers.list(filters={"name": service})
+        for c in containers:
+            c.stop(timeout=5)
+        event_log.log("warning", "demo", f"{service} stopped")
+        return jsonify({"ok": True})
+    except Exception as e:
+        event_log.log("error", "demo", f"Failed to stop {service}", detail=str(e))
+        return jsonify({"ok": False, "error": str(e)})
+
+
 @dashboard_bp.route("/api/logs", methods=["GET"])
 def get_logs():
     return jsonify(event_log.get_events())
