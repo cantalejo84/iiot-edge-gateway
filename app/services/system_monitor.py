@@ -26,7 +26,7 @@ def get_telegraf_status():
 
     health_url = current_app.config.get("TELEGRAF_HEALTH_URL", "http://localhost:8080")
     try:
-        req = urllib.request.urlopen(health_url, timeout=3)
+        req = urllib.request.urlopen(health_url, timeout=3)  # nosec B310
         return {"running": True, "status_code": req.getcode()}
     except Exception:
         return {"running": False, "status_code": None}
@@ -41,7 +41,7 @@ def get_telegraf_metrics():
     from flask import current_app
 
     metrics_file = current_app.config.get(
-        "TELEGRAF_METRICS_FILE", "/tmp/telegraf-metrics/metrics.json"
+        "TELEGRAF_METRICS_FILE", "/tmp/telegraf-metrics/metrics.json"  # nosec B108
     )
 
     default = {

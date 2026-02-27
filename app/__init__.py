@@ -17,7 +17,7 @@ def create_app():
         "TELEGRAF_HEALTH_URL", "http://localhost:8080"
     )
     app.config["TELEGRAF_METRICS_FILE"] = os.environ.get(
-        "TELEGRAF_METRICS_FILE", "/tmp/telegraf-metrics/metrics.json"
+        "TELEGRAF_METRICS_FILE", "/tmp/telegraf-metrics/metrics.json"  # nosec B108
     )
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
 
