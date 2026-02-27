@@ -1,0 +1,17 @@
+# Ruff configuration for iiot-edge-gateway
+# https://docs.astral.sh/ruff/configuration/
+
+target-version = "py313"
+
+[lint]
+# E/W = pycodestyle, F = pyflakes, I = isort, B = flake8-bugbear
+select = ["E", "W", "F", "I", "B"]
+
+ignore = [
+  "E501",  # line too long — not enforced, handled by formatter
+  "B008",  # do not perform function calls in default args (common in Flask routes)
+]
+
+[format]
+quote-style = "double"
+indent-style = "space"

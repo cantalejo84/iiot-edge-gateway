@@ -1,0 +1,1051 @@
+{% extends "base.html" %}
+
+{% block page_title %}Help &amp; Documentation{% endblock %}
+{% block header_actions %}{% endblock %}
+
+{% block content %}
+
+<!-- Tab navigation -->
+<ul class="nav nav-pills help-tabs mb-4" id="helpTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-start" type="button">
+            <i class="bi bi-rocket-takeoff"></i> Getting Started
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-dashboard" type="button">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-opcua" type="button">
+            <i class="bi bi-plug"></i> OPC UA
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-mqtt" type="button">
+            <i class="bi bi-cloud-arrow-up"></i> MQTT &amp; Cloud
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-telegraf" type="button">
+            <i class="bi bi-cpu"></i> Telegraf
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-iiot" type="button">
+            <i class="bi bi-diagram-3"></i> IIoT Concepts
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content">
+
+    <!-- ── GETTING STARTED ───────────────────────────────────────── -->
+    <div class="tab-pane fade show active" id="tab-start">
+        <div class="row g-4">
+            <div class="col-lg-8">
+
+                <div class="help-section">
+                    <h2 class="help-h2">What is IIoT Edge Gateway?</h2>
+                    <p class="help-p">
+                        IIoT Edge Gateway is a self-hosted web application that connects industrial machines
+                        (via OPC UA) to cloud IoT platforms (via MQTT). It runs on your edge hardware — a server,
+                        industrial PC, or Raspberry Pi — and bridges the gap between your factory floor and the cloud.
+                    </p>
+                    <p class="help-p">
+                        You configure everything through a web UI. The gateway generates and manages a
+                        <strong>Telegraf</strong> configuration that does the actual data collection and publishing.
+                    </p>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Data Flow</h2>
+                    <div class="help-diagram">
+<pre>
+  ┌─────────────────┐     OPC UA      ┌───────────────────┐     MQTT      ┌──────────────────┐
+  │  PLC / SCADA /  │ ─────────────►  │  IIoT Edge        │ ────────────► │  AWS IoT Core    │
+  │  OPC UA Server  │                 │  Gateway           │               │  Azure IoT Hub   │
+  └─────────────────┘                 │  (Telegraf agent)  │               │  Any MQTT Broker │
+                                      └───────────────────┘               └──────────────────┘
+                                              │
+                                      ┌───────┴───────┐
+                                      │  Web UI       │
+                                      │  :8050        │
+                                      └───────────────┘
+</pre>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Setup in 6 steps</h2>
+
+                    <div class="help-steps">
+                        <div class="help-step">
+                            <div class="help-step-num">1</div>
+                            <div class="help-step-body">
+                                <div class="help-step-title">Connect to your OPC UA server</div>
+                                <div class="help-step-desc">Go to <strong>OPC UA Config → Connection</strong>. Enter the endpoint of your OPC UA server (e.g. <code>opc.tcp://192.168.1.100:4840</code>) and configure authentication. Hit <strong>Test Connection</strong> to verify.</div>
+                            </div>
+                        </div>
+                        <div class="help-step">
+                            <div class="help-step-num">2</div>
+                            <div class="help-step-body">
+                                <div class="help-step-title">Browse the node tree</div>
+                                <div class="help-step-desc">Go to <strong>Browse Nodes</strong>. Expand the address space to find your machine's variables — temperatures, pressures, speeds, counters. Click any node to inspect its details and add it to your selection.</div>
+                            </div>
+                        </div>
+                        <div class="help-step">
+                            <div class="help-step-num">3</div>
+                            <div class="help-step-body">
+                                <div class="help-step-title">Configure polling</div>
+                                <div class="help-step-desc">In <strong>Node Selection</strong>, set the sampling interval for each variable. Use deadband filters to avoid publishing redundant values when a signal is stable.</div>
+                            </div>
+                        </div>
+                        <div class="help-step">
+                            <div class="help-step-num">4</div>
+                            <div class="help-step-body">
+                                <div class="help-step-title">Set up your MQTT output</div>
+                                <div class="help-step-desc">Go to <strong>MQTT Config → Connection</strong>. Enter your broker endpoint. For AWS IoT Core or Azure IoT Hub, upload your TLS certificates and use the auto-generate buttons for cloud-specific configuration.</div>
+                            </div>
+                        </div>
+                        <div class="help-step">
+                            <div class="help-step-num">5</div>
+                            <div class="help-step-body">
+                                <div class="help-step-title">Deploy</div>
+                                <div class="help-step-desc">Click <strong>Deploy config</strong> in the sidebar. The gateway generates <code>telegraf.conf</code> and restarts the Telegraf agent. The status badge changes to <em>Config synced</em>.</div>
+                            </div>
+                        </div>
+                        <div class="help-step">
+                            <div class="help-step-num">6</div>
+                            <div class="help-step-body">
+                                <div class="help-step-title">Verify on the Dashboard</div>
+                                <div class="help-step-desc">The <strong>Dashboard</strong> shows live pipeline health — OPC UA reads, buffer usage, and MQTT delivery. Use <strong>View Messages</strong> to see the actual payloads arriving at your broker in real time.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Try it with the demo servers</h2>
+                    <p class="help-p">
+                        The stack includes a demo OPC UA server and a Mosquitto broker so you can test
+                        the full pipeline without any external services.
+                    </p>
+                    <div class="help-callout help-callout-info">
+                        <div class="help-callout-title"><i class="bi bi-lightning-fill"></i> Quick demo</div>
+                        <ol class="mb-0" style="padding-left:1.2rem; font-size:0.82rem;">
+                            <li>OPC UA Config → Connection → click <strong>Use Demo Server</strong></li>
+                            <li>Browse Nodes → expand the tree → add some variables</li>
+                            <li>MQTT Config → Connection → click <strong>Use MQTT Broker Demo</strong></li>
+                            <li>Click <strong>Deploy config</strong></li>
+                            <li>MQTT Config → View Messages → click <strong>Start</strong></li>
+                        </ol>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="col-lg-4">
+                <div class="help-section">
+                    <h2 class="help-h2">Dashboard</h2>
+                    <img src="{{ url_for('static', filename='screenshots/dashboard.png') }}"
+                         alt="Dashboard screenshot" class="help-screenshot">
+                    <p class="help-p mt-2" style="font-size:0.78rem;">
+                        The Dashboard gives you a real-time view of the full data pipeline and system health.
+                        See the <button class="btn btn-link p-0 align-baseline help-link" style="font-size:inherit;" data-bs-toggle="pill" data-bs-target="#tab-dashboard">Dashboard tab</button> for a full explanation of every element.
+                    </p>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Requirements</h2>
+                    <ul class="help-list">
+                        <li><i class="bi bi-check2"></i> Docker + Docker Compose</li>
+                        <li><i class="bi bi-check2"></i> A reachable OPC UA server</li>
+                        <li><i class="bi bi-check2"></i> An MQTT broker (cloud or local)</li>
+                        <li><i class="bi bi-check2"></i> Port 8050 open on the gateway host</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Configuration is auto-saved</h2>
+                    <div class="help-callout help-callout-tip">
+                        <div class="help-callout-title"><i class="bi bi-info-circle-fill"></i> Note</div>
+                        All form fields save automatically as you type (800 ms debounce). You never need to click Save. Changes are <strong>pending</strong> until you click <strong>Deploy config</strong>, which applies them to Telegraf.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── DASHBOARD ─────────────────────────────────────────────── -->
+    <div class="tab-pane fade" id="tab-dashboard">
+
+        <div class="help-section">
+            <img src="{{ url_for('static', filename='screenshots/dashboard-detail.png') }}"
+                 alt="Dashboard detail" class="help-screenshot mb-3">
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-8">
+
+                <div class="help-section">
+                    <h2 class="help-h2">Pipeline Health</h2>
+                    <p class="help-p">
+                        Shows the live state of your data pipeline end-to-end. Metrics refresh every 5 seconds
+                        from Telegraf's internal monitoring plugin.
+                    </p>
+                    <div class="help-diagram">
+<pre>
+  [ OPC UA Read ]  ──────►  [ Buffer ]  ──────►  [ MQTT Send ]
+   metrics added             in buffer            metrics written
+</pre>
+                    </div>
+
+                    <table class="help-table">
+                        <thead><tr><th>Element</th><th>What it shows</th></tr></thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>OPC UA Read</strong></td>
+                                <td>Number of data points collected from the OPC UA server in the last Telegraf cycle. Sourced from <code>internal_write.metrics_added</code>.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Buffer</strong></td>
+                                <td>Messages queued internally in Telegraf waiting to be sent. A persistently full buffer means MQTT delivery is falling behind.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>MQTT Send</strong></td>
+                                <td>Messages confirmed as delivered to the broker in the last cycle. Sourced from <code>internal_write.metrics_written</code>.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Scan Time</strong></td>
+                                <td>Duration of the last OPC UA read cycle in milliseconds. High values may indicate a slow or overloaded OPC UA server.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Dropped</strong></td>
+                                <td>Messages that were collected but never sent (buffer overflow or connection failure). Should stay at 0 in normal operation.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Errors</strong></td>
+                                <td>Number of failed OPC UA read attempts in the last cycle.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Loss Rate</strong></td>
+                                <td>Percentage of reads that resulted in an error: <code>(errors / total) × 100</code>. A non-zero value means your OPC UA server is returning bad quality data.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="help-callout help-callout-tip mt-3">
+                        <div class="help-callout-title"><i class="bi bi-info-circle-fill"></i> Zero reads?</div>
+                        If OPC UA Read and MQTT Send both show 0, check that Telegraf is running (STATE section in the sidebar) and that you have deployed the config after selecting nodes.
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">System Health</h2>
+                    <p class="help-p">
+                        Live resource usage of the gateway host, collected via <code>psutil</code>. Helps you ensure the edge hardware is not overloaded.
+                    </p>
+
+                    <table class="help-table">
+                        <thead><tr><th>Metric</th><th>What it shows</th><th>Normal range</th></tr></thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>CPU</strong></td>
+                                <td>Total CPU utilisation of the gateway host across all cores.</td>
+                                <td>&lt; 50%</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Memory</strong></td>
+                                <td>RAM used vs total. Includes OS page cache in the "used" figure.</td>
+                                <td>&lt; 80%</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Disk</strong></td>
+                                <td>Storage usage of the filesystem where the gateway data is stored.</td>
+                                <td>&lt; 80%</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Network I/O</strong></td>
+                                <td>Cumulative bytes sent and received on all network interfaces since boot.</td>
+                                <td>—</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Data Quality</h2>
+                    <p class="help-p">
+                        Aggregated OPC UA read success and error rates over the last reporting period. Sourced from <code>internal_opcua.read_success</code> and <code>internal_opcua.read_error</code>.
+                    </p>
+                    <table class="help-table">
+                        <thead><tr><th>Metric</th><th>Meaning</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>Successful reads</strong></td><td>Node reads that returned a valid value with Good OPC UA status code.</td></tr>
+                            <tr><td><strong>Failed reads</strong></td><td>Node reads that returned Bad or Uncertain status, or timed out.</td></tr>
+                            <tr><td><strong>Loss %</strong></td><td>Percentage of total reads that failed. Anything above 1% warrants investigation.</td></tr>
+                        </tbody>
+                    </table>
+                    <div class="help-callout help-callout-warning mt-3">
+                        <div class="help-callout-title"><i class="bi bi-exclamation-triangle-fill"></i> High error rate</div>
+                        Common causes: wrong Node IDs, OPC UA server under load, network instability between gateway and PLC, or mismatched security settings.
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="col-lg-4">
+
+                <div class="help-section">
+                    <h2 class="help-h2">Gateway Info</h2>
+                    <table class="help-table">
+                        <thead><tr><th>Field</th><th>Description</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>Uptime</strong></td><td>How long the gateway process has been running since last restart.</td></tr>
+                            <tr><td><strong>Nodes configured</strong></td><td>Total OPC UA variable nodes in your selection.</td></tr>
+                            <tr><td><strong>Last config applied</strong></td><td>Timestamp of the last <em>Deploy config</em> action. If never deployed, shows "Never".</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Component Status</h2>
+                    <p class="help-p">
+                        Shows the running state of every Docker container in the stack.
+                    </p>
+                    <table class="help-table">
+                        <thead><tr><th>Component</th><th>Role</th></tr></thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="badge" style="background:var(--success);font-size:0.65rem;">running</span> <strong>Edge UI</strong></td>
+                                <td>The Flask web application you're using right now.</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge" style="background:var(--success);font-size:0.65rem;">running</span> <strong>Telegraf Agent</strong></td>
+                                <td>The data collection engine. Must be running for data to flow.</td>
+                            </tr>
+                            <tr>
+                                <td><span class="badge" style="background:var(--text-muted);font-size:0.65rem;">stopped</span> <strong>Any component</strong></td>
+                                <td>Use the STATE play button in the sidebar to restart Telegraf, or check Docker logs for other containers.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Auto-refresh</h2>
+                    <div class="help-callout help-callout-info">
+                        <div class="help-callout-title"><i class="bi bi-arrow-clockwise"></i> 5-second refresh</div>
+                        <p style="font-size:0.8rem;">
+                            The Dashboard polls all metrics automatically every 5 seconds. No need to reload the page manually.
+                        </p>
+                        <p style="font-size:0.78rem;">
+                            Telegraf itself writes internal metrics every 10 seconds, so Pipeline Health values update at most once every 10 seconds even though the UI polls more frequently.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Telegraf not running?</h2>
+                    <div class="help-callout help-callout-warning">
+                        <div class="help-callout-title"><i class="bi bi-exclamation-triangle-fill"></i> All zeros</div>
+                        <p style="font-size:0.8rem;">If all Pipeline Health metrics show 0 or dashes:</p>
+                        <ol style="font-size:0.79rem;padding-left:1.2rem;margin:0;">
+                            <li>Check Component Status — is Telegraf running?</li>
+                            <li>Use the ▶ button in STATE to start it</li>
+                            <li>If it was just deployed, wait one full 10-second cycle</li>
+                            <li>Check Logs (sidebar) for Telegraf errors</li>
+                        </ol>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ── OPC UA ─────────────────────────────────────────────────── -->
+    <div class="tab-pane fade" id="tab-opcua">
+        <div class="row g-4">
+            <div class="col-lg-8">
+
+                <div class="help-section">
+                    <h2 class="help-h2">What is OPC UA?</h2>
+                    <p class="help-p">
+                        <strong>OPC UA (Open Platform Communications Unified Architecture)</strong> is the
+                        industrial standard for secure, reliable machine-to-machine communication.
+                        It is vendor-neutral and used in PLCs, SCADA systems, CNC machines, robots,
+                        sensors, and virtually every modern industrial device.
+                    </p>
+                    <p class="help-p">
+                        An OPC UA server exposes a structured <strong>address space</strong> — a tree of
+                        objects and variables representing the machine's state. The gateway connects to this
+                        server, browses the tree, and reads the values of the variables you select.
+                    </p>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Connection Settings</h2>
+
+                    <table class="help-table">
+                        <thead><tr><th>Field</th><th>Description</th><th>Example</th></tr></thead>
+                        <tbody>
+                            <tr><td>Endpoint</td><td>URL of the OPC UA server</td><td><code>opc.tcp://192.168.1.100:4840</code></td></tr>
+                            <tr><td>Auth Method</td><td>How the gateway authenticates</td><td>Anonymous, UserName, Certificate</td></tr>
+                            <tr><td>Security Policy</td><td>Encryption algorithm</td><td>None, Basic256Sha256</td></tr>
+                            <tr><td>Security Mode</td><td>Message protection level</td><td>None, Sign, SignAndEncrypt</td></tr>
+                        </tbody>
+                    </table>
+
+                    <div class="help-callout help-callout-tip mt-3">
+                        <div class="help-callout-title"><i class="bi bi-shield-lock-fill"></i> Security tip</div>
+                        For production, use <strong>Basic256Sha256</strong> + <strong>SignAndEncrypt</strong>.
+                        Anonymous auth is convenient for testing but should never be used in production environments.
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Authentication Methods</h2>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="help-card">
+                                <div class="help-card-title"><i class="bi bi-person"></i> Anonymous</div>
+                                <p>No credentials required. The server accepts any connection. Only for development or trusted networks.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="help-card">
+                                <div class="help-card-title"><i class="bi bi-key"></i> Username / Password</div>
+                                <p>Credentials configured on the OPC UA server. Simple and widely supported by PLCs and SCADA systems.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="help-card">
+                                <div class="help-card-title"><i class="bi bi-shield-check"></i> Certificate</div>
+                                <p>X.509 client certificate. Highest security level. Required by some industrial servers in regulated environments.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Node Browser</h2>
+                    <p class="help-p">
+                        The <strong>Browse Nodes</strong> page lets you explore the OPC UA address space interactively.
+                    </p>
+                    <table class="help-table">
+                        <thead><tr><th>Icon</th><th>Node type</th><th>Description</th></tr></thead>
+                        <tbody>
+                            <tr><td><i class="bi bi-folder2" style="color:var(--accent)"></i></td><td>Object</td><td>A container — represents a machine, line, area, or device. Expand to see its children.</td></tr>
+                            <tr><td><i class="bi bi-circle-fill" style="color:var(--success)"></i></td><td>Variable</td><td>A readable data point — temperature, pressure, speed, status. These are what you add to your selection.</td></tr>
+                        </tbody>
+                    </table>
+                    <p class="help-p mt-2">
+                        Click a variable node to see its <strong>Node ID</strong>, <strong>data type</strong>,
+                        and <strong>current value</strong>. Click <em>Add to selection</em> to start collecting it.
+                    </p>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Node Selection</h2>
+                    <p class="help-p">The Node Selection page shows all variables you've added and lets you configure how each one is sampled.</p>
+
+                    <table class="help-table">
+                        <thead><tr><th>Setting</th><th>Description</th></tr></thead>
+                        <tbody>
+                            <tr><td>Sampling interval</td><td>How often Telegraf reads this variable from the OPC UA server. <code>1s</code> = every second, <code>500ms</code> = twice per second.</td></tr>
+                            <tr><td>Deadband type</td><td><strong>None</strong> — publish every reading. <strong>Absolute</strong> — only publish when the value changes by more than X units. <strong>Percent</strong> — only publish when the change exceeds X% of the value range.</td></tr>
+                            <tr><td>Deadband value</td><td>The threshold for the deadband filter. For Absolute: engineering units. For Percent: 0–100.</td></tr>
+                        </tbody>
+                    </table>
+
+                    <div class="help-callout help-callout-tip mt-3">
+                        <div class="help-callout-title"><i class="bi bi-lightbulb-fill"></i> Deadband tip</div>
+                        Use deadband filters for slowly-changing signals like temperature or pressure. A deadband of 0.5°C prevents flooding your broker with identical readings when a machine is in a stable state.
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Message Format</h2>
+                    <p class="help-p">
+                        At the bottom of Node Selection you can choose how Telegraf packages and publishes the OPC UA readings to MQTT.
+                    </p>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="help-card">
+                                <div class="help-card-title"><i class="bi bi-layers"></i> Individual messages</div>
+                                <p>One MQTT message per node per cycle. Each payload contains a single field and the node's unique tag (<code>id</code>). Easier to filter and route downstream by variable.</p>
+                                <code class="help-code-block mt-2">{"fields": {"Temperature": 27.1},
+ "tags": {"id": "ns=1;i=1001"}, ...}
+{"fields": {"TankLevel": 77.4},
+ "tags": {"id": "ns=1;i=1005"}, ...}</code>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="help-card">
+                                <div class="help-card-title"><i class="bi bi-collection"></i> Grouped message</div>
+                                <p>All nodes combined into a single MQTT message per cycle. One payload with all fields. Best for dashboards, time-series databases, and when the consumer needs all values together.</p>
+                                <code class="help-code-block mt-2">{"fields": {
+  "Temperature": 27.1,
+  "TankLevel": 77.4,
+  "MachineState": "Running"
+}, ...}</code>
+                            </div>
+                        </div>
+                    </div>
+
+                    <table class="help-table">
+                        <thead><tr><th>Aspect</th><th>Individual</th><th>Grouped</th></tr></thead>
+                        <tbody>
+                            <tr><td>Messages per cycle</td><td>1 per node</td><td>1 total</td></tr>
+                            <tr><td>Per-node intervals</td><td>Respected</td><td>Replaced by group interval</td></tr>
+                            <tr><td>Sampling mode</td><td>Polling or Subscription</td><td>Polling only</td></tr>
+                            <tr><td>Telegraf config</td><td><code>[[inputs.opcua.nodes]]</code></td><td><code>[[inputs.opcua.group]]</code></td></tr>
+                            <tr><td>Best for</td><td>Per-variable routing, filtering</td><td>Dashboards, InfluxDB, time-series</td></tr>
+                        </tbody>
+                    </table>
+
+                    <div class="help-callout help-callout-warning mt-3">
+                        <div class="help-callout-title"><i class="bi bi-exclamation-triangle-fill"></i> Grouped mode and Subscription</div>
+                        In Grouped mode, Telegraf uses <code>[[inputs.opcua.group]]</code> which reads all nodes together at the configured group interval. Subscription mode (server-push) is not compatible with grouping because different nodes may update at different times — the group packet would never be complete. Grouped mode always uses polling.
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="col-lg-4">
+                <div class="help-section">
+                    <h2 class="help-h2">Common OPC UA ports</h2>
+                    <table class="help-table">
+                        <thead><tr><th>Port</th><th>Use</th></tr></thead>
+                        <tbody>
+                            <tr><td><code>4840</code></td><td>Default OPC UA port</td></tr>
+                            <tr><td><code>4843</code></td><td>OPC UA with TLS</td></tr>
+                            <tr><td><code>4880</code></td><td>Common on Siemens S7</td></tr>
+                            <tr><td><code>62541</code></td><td>Kepware / PTC</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Compatible devices</h2>
+                    <ul class="help-list">
+                        <li><i class="bi bi-check2"></i> Siemens S7-1200 / S7-1500</li>
+                        <li><i class="bi bi-check2"></i> Beckhoff TwinCAT</li>
+                        <li><i class="bi bi-check2"></i> Rockwell / Allen-Bradley</li>
+                        <li><i class="bi bi-check2"></i> Schneider Electric Modicon</li>
+                        <li><i class="bi bi-check2"></i> B&amp;R Automation</li>
+                        <li><i class="bi bi-check2"></i> Any OPC UA compliant server</li>
+                        <li><i class="bi bi-check2"></i> Kepware OPC UA Server</li>
+                        <li><i class="bi bi-check2"></i> Ignition (Inductive Automation)</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Node ID formats</h2>
+                    <div class="help-callout help-callout-info">
+                        <div class="help-callout-title"><i class="bi bi-info-circle-fill"></i> Node ID</div>
+                        <p style="font-size:0.8rem;">Every OPC UA node has a unique identifier:</p>
+                        <code class="help-code-block">ns=2;i=1001      (numeric)
+ns=2;s=MyTag    (string)
+ns=2;g=abc-...  (guid)</code>
+                        <p style="font-size:0.78rem;margin-top:0.5rem;">The browser fills these in automatically when you select a node.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── MQTT & CLOUD ──────────────────────────────────────────── -->
+    <div class="tab-pane fade" id="tab-mqtt">
+        <div class="row g-4">
+            <div class="col-lg-8">
+
+                <div class="help-section">
+                    <h2 class="help-h2">What is MQTT?</h2>
+                    <p class="help-p">
+                        <strong>MQTT (Message Queuing Telemetry Transport)</strong> is a lightweight
+                        publish/subscribe protocol designed for IoT and low-bandwidth networks. A device
+                        (client) publishes messages to a <strong>topic</strong> on a <strong>broker</strong>,
+                        and any subscriber listening to that topic receives the message.
+                    </p>
+                    <p class="help-p">
+                        It is the standard transport protocol for AWS IoT Core, Azure IoT Hub, and most
+                        cloud IoT platforms. Port <code>1883</code> (plain) or <code>8883</code> (TLS).
+                    </p>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Topic Pattern</h2>
+                    <p class="help-p">
+                        The topic pattern defines where Telegraf publishes each message.
+                        It supports <strong>Telegraf template variables</strong> that are resolved at runtime:
+                    </p>
+                    <table class="help-table">
+                        <thead><tr><th>Variable</th><th>Resolves to</th><th>Example</th></tr></thead>
+                        <tbody>
+                            <tr><td><code>{{ '{{' }} .Hostname {{ '}}' }}</code></td><td>Hostname of the gateway</td><td><code>edge-gateway-01</code></td></tr>
+                            <tr><td><code>{{ '{{' }} .PluginName {{ '}}' }}</code></td><td>Telegraf input plugin name</td><td><code>opcua</code></td></tr>
+                        </tbody>
+                    </table>
+                    <div class="help-callout help-callout-info mt-3">
+                        <div class="help-callout-title"><i class="bi bi-info-circle-fill"></i> Example</div>
+                        Pattern <code>iiot/gateway/{{ '{{' }} .Hostname {{ '}}' }}/{{ '{{' }} .PluginName {{ '}}' }}</code>
+                        publishes to <code>iiot/gateway/edge-gateway-01/opcua</code>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">QoS Levels</h2>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="help-card">
+                                <div class="help-card-title">QoS 0 — At most once</div>
+                                <p>Fire and forget. No acknowledgement. Fastest, lowest overhead. May lose messages on network issues. Good for high-frequency sensors.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="help-card">
+                                <div class="help-card-title">QoS 1 — At least once</div>
+                                <p>Message is delivered at least once, possibly more. The broker acknowledges receipt. Recommended for most IIoT applications.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="help-card">
+                                <div class="help-card-title">QoS 2 — Exactly once</div>
+                                <p>Guaranteed delivery exactly once via a 4-step handshake. Highest overhead. Use for critical events where duplicates are unacceptable.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">AWS IoT Core</h2>
+                    <p class="help-p">AWS IoT Core uses <strong>mutual TLS authentication</strong> — both the broker and the device present certificates.</p>
+                    <div class="help-steps">
+                        <div class="help-step">
+                            <div class="help-step-num">1</div>
+                            <div class="help-step-body">
+                                <div class="help-step-title">Create a Thing in AWS IoT Core</div>
+                                <div class="help-step-desc">AWS Console → IoT Core → Manage → Things → Create. Download the device certificate, private key, and the Amazon Root CA.</div>
+                            </div>
+                        </div>
+                        <div class="help-step">
+                            <div class="help-step-num">2</div>
+                            <div class="help-step-body">
+                                <div class="help-step-title">Upload certificates</div>
+                                <div class="help-step-desc">In MQTT Config → Connection → TLS Certificates, upload <code>ca.pem</code> (Root CA), <code>cert.pem</code> (device certificate), and <code>key.pem</code> (private key).</div>
+                            </div>
+                        </div>
+                        <div class="help-step">
+                            <div class="help-step-num">3</div>
+                            <div class="help-step-body">
+                                <div class="help-step-title">Generate the IAM policy</div>
+                                <div class="help-step-desc">Enter your AWS endpoint, then click <strong>Generate AWS IoT Policy</strong>. Copy the JSON and attach it to your IoT certificate in AWS Console → IoT Core → Security → Policies.</div>
+                            </div>
+                        </div>
+                        <div class="help-step">
+                            <div class="help-step-num">4</div>
+                            <div class="help-step-body">
+                                <div class="help-step-title">Deploy and verify</div>
+                                <div class="help-step-desc">Click Deploy config. Use AWS IoT Core → Test → MQTT test client to subscribe to your topic and verify messages are arriving.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Azure IoT Hub</h2>
+                    <p class="help-p">Azure IoT Hub supports two authentication methods for MQTT devices.</p>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="help-card">
+                                <div class="help-card-title"><i class="bi bi-1-circle"></i> SAS Token (simpler)</div>
+                                <p>Generate a Shared Access Signature token from Azure Portal → IoT Hub → Shared Access Policies → iothubowner. Paste it in the <strong>Password</strong> field.</p>
+                                <p>The <strong>Username</strong> is auto-generated by clicking <em>Generate Azure IoT Config</em>.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="help-card">
+                                <div class="help-card-title"><i class="bi bi-2-circle"></i> X.509 Certificate</div>
+                                <p>Register the device in IoT Hub with a certificate thumbprint. Upload the certs in the TLS section. No username/password needed.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="help-callout help-callout-warning">
+                        <div class="help-callout-title"><i class="bi bi-exclamation-triangle-fill"></i> Azure topic format</div>
+                        Azure IoT Hub only accepts messages on a specific topic:
+                        <code class="help-code-block mt-1">devices/{{ '{{' }} .Hostname {{ '}}' }}/messages/events/</code>
+                        The <em>Generate Azure IoT Config</em> button fills this in automatically.
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">TLS Certificates</h2>
+                    <table class="help-table">
+                        <thead><tr><th>File</th><th>Purpose</th></tr></thead>
+                        <tbody>
+                            <tr><td><code>ca.pem</code></td><td>Certificate Authority — validates the broker's certificate. For AWS: Amazon Root CA. For Azure: DigiCert root.</td></tr>
+                            <tr><td><code>cert.pem</code></td><td>Client certificate — identifies your gateway to the broker.</td></tr>
+                            <tr><td><code>key.pem</code></td><td>Private key — paired with the client certificate. Keep this secret.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+
+            <div class="col-lg-4">
+                <div class="help-section">
+                    <h2 class="help-h2">Endpoint formats</h2>
+                    <table class="help-table">
+                        <thead><tr><th>Broker</th><th>Endpoint</th></tr></thead>
+                        <tbody>
+                            <tr><td>AWS IoT Core</td><td><code style="font-size:0.7rem;">mqtts://xxxx-ats.iot.<br>eu-west-1.amazonaws.com:8883</code></td></tr>
+                            <tr><td>Azure IoT Hub</td><td><code style="font-size:0.7rem;">mqtts://hub.azure-<br>devices.net:8883</code></td></tr>
+                            <tr><td>Mosquitto (local)</td><td><code>mqtt://host:1883</code></td></tr>
+                            <tr><td>HiveMQ Cloud</td><td><code>mqtts://host:8883</code></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Live Message Tail</h2>
+                    <div class="help-callout help-callout-info">
+                        <div class="help-callout-title"><i class="bi bi-terminal-fill"></i> View Messages</div>
+                        <p style="font-size:0.8rem;">The <strong>MQTT → View Messages</strong> page subscribes to your broker in real time. It uses the last <em>deployed</em> config — if you've changed the endpoint without deploying, it still connects to the previously active broker.</p>
+                        <p style="font-size:0.78rem;">Auto-stops after 5 minutes to avoid unnecessary connections.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Data formats</h2>
+                    <div class="help-callout help-callout-tip">
+                        <div class="help-callout-title"><i class="bi bi-braces"></i> JSON (recommended)</div>
+                        <code class="help-code-block">{
+  "fields": { "Temperature": 72.3 },
+  "name": "opcua",
+  "tags": { "id": "ns=2;i=2" },
+  "timestamp": 1708000000
+}</code>
+                    </div>
+                    <div class="help-callout help-callout-tip mt-2">
+                        <div class="help-callout-title"><i class="bi bi-bar-chart"></i> InfluxDB Line Protocol</div>
+                        <code class="help-code-block">opcua,id=ns=2;i=2 Temperature=72.3 1708000000</code>
+                        <p style="font-size:0.78rem;margin-top:0.4rem;">Use if your downstream system is InfluxDB or TimescaleDB.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── TELEGRAF ───────────────────────────────────────────────── -->
+    <div class="tab-pane fade" id="tab-telegraf">
+        <div class="row g-4">
+            <div class="col-lg-8">
+
+                <div class="help-section">
+                    <h2 class="help-h2">What is Telegraf?</h2>
+                    <p class="help-p">
+                        <a href="https://github.com/influxdata/telegraf" target="_blank" class="help-link">Telegraf</a>
+                        is an open-source, plugin-driven server agent for collecting and sending metrics and events.
+                        It is developed by <strong>InfluxData</strong> and has over 300 input and output plugins.
+                    </p>
+                    <p class="help-p">
+                        In IIoT Edge Gateway, Telegraf is the <strong>data engine</strong>. The web UI configures it —
+                        Telegraf does the actual OPC UA reading and MQTT publishing. This separation means the
+                        gateway UI never touches production data directly.
+                    </p>
+                    <div class="help-diagram">
+<pre>
+  Gateway UI (Flask)           Telegraf agent
+  ─────────────────           ──────────────────────────────────────
+  User configures  ──────►    [[inputs.opcua]]   reads OPC UA data
+  Deploy config    ──────►    [[outputs.mqtt]]   publishes to broker
+  Dashboard reads  ◄──────    [[inputs.internal]] exposes metrics
+                              [[outputs.file]]   writes metrics.json
+</pre>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Generated telegraf.conf</h2>
+                    <p class="help-p">
+                        When you click <strong>Deploy config</strong>, the gateway renders a
+                        <code>telegraf.conf</code> from your settings. Here is what each section does:
+                    </p>
+
+                    <div class="help-conf-block">
+                        <div class="help-conf-label">[agent]</div>
+                        <code class="help-code-block">[agent]
+  interval = "10s"        # How often Telegraf collects metrics
+  flush_interval = "10s"  # How often it sends to outputs
+  hostname = "iiot-edge-gateway"</code>
+                        <p class="help-conf-desc">Global agent settings. Interval controls how often OPC UA variables are read.</p>
+                    </div>
+
+                    <div class="help-conf-block">
+                        <div class="help-conf-label">[[inputs.opcua]]</div>
+                        <code class="help-code-block">[[inputs.opcua]]
+  name = "opcua"
+  endpoint = "opc.tcp://192.168.1.100:4840"
+  auth_method = "Anonymous"
+  [[inputs.opcua.nodes]]
+    name = "Temperature"
+    namespace = "2"
+    identifier_type = "i"
+    identifier = "1001"</code>
+                        <p class="help-conf-desc">Reads the OPC UA variables you selected. One <code>[[inputs.opcua.nodes]]</code> block per variable.</p>
+                    </div>
+
+                    <div class="help-conf-block">
+                        <div class="help-conf-label">[[outputs.mqtt]]</div>
+                        <code class="help-code-block">[[outputs.mqtt]]
+  servers = ["mqtts://xxxx.iot.eu-west-1.amazonaws.com:8883"]
+  topic = 'iiot/gateway/{{ '{{' }} .Hostname {{ '}}' }}/{{ '{{' }} .PluginName {{ '}}' }}'
+  qos = 1
+  data_format = "json"
+  tls_ca   = "/etc/telegraf/certs/mqtt/ca.pem"
+  tls_cert = "/etc/telegraf/certs/mqtt/cert.pem"
+  tls_key  = "/etc/telegraf/certs/mqtt/key.pem"
+  namepass = ["opcua"]   # only OPC UA data, not internal metrics</code>
+                        <p class="help-conf-desc">Publishes OPC UA readings to your MQTT broker. <code>namepass</code> ensures only OPC UA data goes to MQTT, not Telegraf's own internal metrics.</p>
+                    </div>
+
+                    <div class="help-conf-block">
+                        <div class="help-conf-label">[[inputs.internal]] + [[outputs.file]]</div>
+                        <code class="help-code-block">[[inputs.internal]]
+  collect_memstats = true   # Collect per-plugin metrics
+
+[[outputs.file]]
+  files = ["/tmp/telegraf-metrics/metrics.json"]
+  namepass = ["internal_*"]  # Only internal metrics</code>
+                        <p class="help-conf-desc">Telegraf writes its own performance metrics to a JSON file. The gateway Dashboard reads this file to show pipeline health (reads/sec, messages sent, errors).</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Updating the gateway</h2>
+                    <p class="help-p">
+                        To update to a new version on a running server, SSH in and run:
+                    </p>
+                    <code class="help-code-block">cd iiot-edge-gateway
+
+# Pull the new release
+git pull origin 1.2.0
+
+# Rebuild the gateway container (Telegraf and data are untouched)
+docker compose up --build -d gateway</code>
+                    <p class="help-p mt-2">
+                        If the release includes changes to <code>docker-compose.yml</code>, restart the full stack instead:
+                    </p>
+                    <code class="help-code-block">docker compose up --build -d</code>
+                    <div class="help-callout help-callout-tip mt-3">
+                        <div class="help-callout-title"><i class="bi bi-info-circle-fill"></i> Your data is safe</div>
+                        A gateway rebuild does not touch <code>data/config.json</code>, your TLS certificates, or the running Telegraf agent. Data collection continues uninterrupted.
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Deploy vs Preview</h2>
+                    <table class="help-table">
+                        <thead><tr><th>Action</th><th>What it does</th></tr></thead>
+                        <tbody>
+                            <tr><td><strong>Preview Config</strong></td><td>Shows the <em>currently running</em> <code>telegraf.conf</code> on disk — exactly what Telegraf is using right now.</td></tr>
+                            <tr><td><strong>Deploy config</strong></td><td>Renders a new <code>telegraf.conf</code> from the current settings, writes it to disk, and restarts Telegraf.</td></tr>
+                        </tbody>
+                    </table>
+                    <div class="help-callout help-callout-warning mt-3">
+                        <div class="help-callout-title"><i class="bi bi-exclamation-triangle-fill"></i> Unapplied changes</div>
+                        The <em>Unapplied changes</em> badge means your settings in the UI differ from what Telegraf is currently running. Click <strong>Deploy config</strong> to sync them.
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="col-lg-4">
+                <div class="help-section">
+                    <h2 class="help-h2">Telegraf agent controls</h2>
+                    <div class="help-callout help-callout-info">
+                        <div class="help-callout-title"><i class="bi bi-play-circle-fill"></i> STATE controls</div>
+                        <p style="font-size:0.8rem;">The sidebar STATE section has two buttons:</p>
+                        <ul style="font-size:0.8rem;padding-left:1.2rem;">
+                            <li><strong>▶ Play</strong> — Start the Telegraf container</li>
+                            <li><strong>■ Stop</strong> — Stop the Telegraf container</li>
+                        </ul>
+                        <p style="font-size:0.78rem;">Stopping Telegraf halts all OPC UA reads and MQTT publishing. The gateway UI stays up.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Dashboard metrics</h2>
+                    <table class="help-table">
+                        <thead><tr><th>Metric</th><th>Source</th></tr></thead>
+                        <tbody>
+                            <tr><td>OPC UA Read</td><td><code>internal_write.metrics_added</code> — messages queued for MQTT per cycle</td></tr>
+                            <tr><td>MQTT Send</td><td><code>internal_write.metrics_written</code> — messages confirmed by the broker</td></tr>
+                            <tr><td>Dropped</td><td>Messages buffered but not yet sent</td></tr>
+                            <tr><td>Scan Time</td><td>Duration of each OPC UA read cycle</td></tr>
+                            <tr><td>Loss Rate</td><td>(Errors / Total reads) × 100</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Useful links</h2>
+                    <ul class="help-list">
+                        <li><i class="bi bi-box-arrow-up-right"></i> <a href="https://github.com/influxdata/telegraf" target="_blank" class="help-link">Telegraf on GitHub</a></li>
+                        <li><i class="bi bi-box-arrow-up-right"></i> <a href="https://docs.influxdata.com/telegraf/v1/plugins/#input-opcua" target="_blank" class="help-link">OPC UA input plugin docs</a></li>
+                        <li><i class="bi bi-box-arrow-up-right"></i> <a href="https://docs.influxdata.com/telegraf/v1/plugins/#output-mqtt" target="_blank" class="help-link">MQTT output plugin docs</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── IIoT CONCEPTS ─────────────────────────────────────────── -->
+    <div class="tab-pane fade" id="tab-iiot">
+        <div class="row g-4">
+            <div class="col-lg-8">
+
+                <div class="help-section">
+                    <h2 class="help-h2">Industrial IoT Architecture</h2>
+                    <p class="help-p">
+                        <strong>IIoT (Industrial Internet of Things)</strong> refers to the use of internet-connected
+                        sensors and devices in industrial environments — factories, power plants, oil & gas,
+                        utilities, and logistics.
+                    </p>
+                    <p class="help-p">
+                        A typical IIoT architecture has three layers:
+                    </p>
+                    <div class="help-diagram">
+<pre>
+  ┌─────────────────────────────────────────────────────┐
+  │  CLOUD LAYER                                        │
+  │  AWS IoT Core / Azure IoT Hub / InfluxDB Cloud      │
+  │  Analytics · Dashboards · Alerts · ML               │
+  └──────────────────────┬──────────────────────────────┘
+                         │  MQTT over TLS (internet)
+  ┌──────────────────────┴──────────────────────────────┐
+  │  EDGE LAYER          ◄── You are here               │
+  │  IIoT Edge Gateway (this app)                       │
+  │  Protocol translation · Local config · Monitoring   │
+  └──────────────────────┬──────────────────────────────┘
+                         │  OPC UA (local network)
+  ┌──────────────────────┴──────────────────────────────┐
+  │  FIELD LAYER                                        │
+  │  PLCs · SCADA · Sensors · Robots · CNC Machines     │
+  └─────────────────────────────────────────────────────┘
+</pre>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Edge Computing</h2>
+                    <p class="help-p">
+                        Processing data close to the source — at the "edge" of the network, before it reaches
+                        the cloud — has key advantages in industrial environments:
+                    </p>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="help-card">
+                                <div class="help-card-title"><i class="bi bi-lightning-charge"></i> Low latency</div>
+                                <p>Local decisions don't depend on cloud connectivity. Critical for safety systems and real-time control.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="help-card">
+                                <div class="help-card-title"><i class="bi bi-wifi-off"></i> Offline resilience</div>
+                                <p>The gateway buffers data when the cloud connection is unavailable and sends it when connectivity is restored.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="help-card">
+                                <div class="help-card-title"><i class="bi bi-funnel"></i> Bandwidth reduction</div>
+                                <p>Deadband filters and sampling intervals reduce the volume of data sent to the cloud — only meaningful changes are transmitted.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="help-card">
+                                <div class="help-card-title"><i class="bi bi-shield-check"></i> Security isolation</div>
+                                <p>The edge gateway acts as a DMZ. OPC UA machines never have direct internet access — only the gateway does.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">OPC UA in Industry</h2>
+                    <p class="help-p">
+                        OPC UA is the successor to OPC Classic (DA, HDA, AE) and was designed from the ground up
+                        to be platform-independent, secure, and internet-ready. Key characteristics:
+                    </p>
+                    <ul class="help-list">
+                        <li><i class="bi bi-check2"></i> <strong>Vendor neutral</strong> — supported by every major automation vendor</li>
+                        <li><i class="bi bi-check2"></i> <strong>Secure by design</strong> — built-in authentication, encryption, and access control</li>
+                        <li><i class="bi bi-check2"></i> <strong>Information model</strong> — data is exposed in a structured, semantic address space</li>
+                        <li><i class="bi bi-check2"></i> <strong>Scalable</strong> — from embedded microcontrollers to enterprise SCADA systems</li>
+                        <li><i class="bi bi-check2"></i> <strong>Industry 4.0 ready</strong> — mandated by many Industry 4.0 and IEC 62541 standards</li>
+                    </ul>
+                </div>
+
+            </div>
+
+            <div class="col-lg-4">
+                <div class="help-section">
+                    <h2 class="help-h2">Glossary</h2>
+                    <dl class="help-glossary">
+                        <dt>OPC UA</dt>
+                        <dd>Open Platform Communications Unified Architecture. Industrial communication standard.</dd>
+                        <dt>MQTT</dt>
+                        <dd>Message Queuing Telemetry Transport. Lightweight publish/subscribe protocol for IoT.</dd>
+                        <dt>Telegraf</dt>
+                        <dd>Open-source agent for collecting and routing metrics. The data engine of this gateway.</dd>
+                        <dt>PLC</dt>
+                        <dd>Programmable Logic Controller. The computer that controls a machine or production line.</dd>
+                        <dt>SCADA</dt>
+                        <dd>Supervisory Control and Data Acquisition. Supervisory software for monitoring industrial processes.</dd>
+                        <dt>Edge gateway</dt>
+                        <dd>A device that sits between field equipment and the cloud, translating protocols and aggregating data.</dd>
+                        <dt>Topic</dt>
+                        <dd>A string identifier that MQTT clients use to publish and subscribe to messages (e.g. <code>iiot/plant1/temp</code>).</dd>
+                        <dt>TLS</dt>
+                        <dd>Transport Layer Security. Encrypts the MQTT connection and authenticates both parties.</dd>
+                        <dt>Deadband</dt>
+                        <dd>A filter that suppresses publishing when a value hasn't changed significantly, reducing noise.</dd>
+                        <dt>Address space</dt>
+                        <dd>The tree of objects and variables exposed by an OPC UA server.</dd>
+                        <dt>Node ID</dt>
+                        <dd>The unique identifier of a variable or object in the OPC UA address space.</dd>
+                        <dt>QoS</dt>
+                        <dd>Quality of Service. Defines the delivery guarantee level for MQTT messages (0, 1, or 2).</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /tab-content -->
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Activate tab from URL hash
+document.addEventListener("DOMContentLoaded", () => {
+    const hash = window.location.hash;
+    if (hash) {
+        const btn = document.querySelector(`[data-bs-target="${hash}"]`);
+        if (btn) new bootstrap.Tab(btn).show();
+    }
+    document.querySelectorAll(".help-tabs .nav-link").forEach(btn => {
+        btn.addEventListener("shown.bs.tab", () => {
+            history.replaceState(null, null, btn.dataset.bsTarget);
+        });
+    });
+});
+</script>
+{% endblock %}
