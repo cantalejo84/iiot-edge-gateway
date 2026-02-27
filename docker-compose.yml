@@ -50,6 +50,13 @@ services:
       - "4840:4840"
     restart: unless-stopped
 
+  modbus-demo-server:
+    build: ./test_infra/modbus_server
+    ports:
+      - "502:502"
+    user: "0:0"
+    restart: unless-stopped
+
   mosquitto:
     image: eclipse-mosquitto:2
     ports:

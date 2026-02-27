@@ -55,6 +55,7 @@
 [data-theme="keepler"] .info-item,
 [data-theme="keepler"] .container-status-item,
 [data-theme="keepler"] .pf-node-opcua,
+[data-theme="keepler"] .pf-node-modbus,
 [data-theme="keepler"] .pf-node-mqtt,
 [data-theme="keepler"] .pf-node-buffer,
 [data-theme="keepler"] .pipeline-stat,
@@ -239,6 +240,29 @@ body {
 }
 .nav-child .nav-link.active { border-left-color: var(--accent); }
 .nav-child .nav-link i { font-size: 0.85rem; }
+
+/* Input status dot (sidebar) */
+.nav-input-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    opacity: 0.35;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.nav-input-dot.dot-ready {
+    background: var(--success);
+    opacity: 1;
+}
+
+.sidebar .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
 
 .nav-locked {
     opacity: 0.4;
@@ -938,6 +962,14 @@ body {
     color: var(--text-muted);
 }
 
+/* Inputs column — stacks OPC UA and/or Modbus vertically */
+.pf-inputs-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: stretch;
+}
+
 /* OPC UA node — bigger */
 .pf-node-opcua {
     background: var(--sidebar-bg);
@@ -951,6 +983,38 @@ body {
 
 .pf-node-opcua .pf-node-icon { font-size: 1.2rem; color: var(--accent); }
 .pf-node-opcua .pf-node-value { font-size: 2.4rem; line-height: 1; }
+
+/* Modbus node — same size as OPC UA */
+.pf-node-modbus {
+    background: var(--sidebar-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 1rem 1.5rem;
+    min-width: 180px;
+    position: relative;
+    overflow: visible;
+}
+
+.pf-node-modbus .pf-node-icon { font-size: 1.2rem; color: #b8860b; }
+.pf-node-modbus .pf-node-value { font-size: 2.4rem; line-height: 1; }
+
+[data-theme="keepler"] .pf-node-modbus { background: var(--card-bg); }
+
+/* Fork connector — used when both inputs are active */
+.pf-connector-fork {
+    position: relative;
+}
+
+.pf-connector-fork::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--border-color);
+    transform: translateX(-50%);
+}
 
 /* Pulse ring on OPC UA node */
 .pf-pulse-ring {

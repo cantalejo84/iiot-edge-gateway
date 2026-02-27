@@ -66,6 +66,28 @@
 {%- endif %}
 {% endfor %}
 {%- endif %}
+{%- if modbus.enabled and modbus.registers %}
+
+[[inputs.modbus]]
+  name = "modbus"
+  controller = "{{ modbus.controller }}"
+  transmission_mode = "TCP"
+  slave_id = {{ modbus.slave_id }}
+  timeout = "{{ modbus.timeout }}"
+
+  [[inputs.modbus.metric]]
+    name = "modbus"
+    slave_id = {{ modbus.slave_id }}
+{% for reg in modbus.registers %}
+    [[inputs.modbus.metric.field]]
+      name = "{{ reg.name }}"
+      register = "{{ reg.register_type }}"
+      address = {{ reg.address }}
+      data_type = "{{ reg.data_type }}"
+      byte_order = "{{ reg.byte_order }}"
+{% endfor %}
+{%- endif %}
+
 # Internal metrics for self-monitoring
 [[inputs.internal]]
   collect_memstats = true
@@ -103,7 +125,7 @@
   tls_cert = "{{ mqtt.tls_cert }}"
   tls_key = "{{ mqtt.tls_key }}"
 {%- endif %}
-  namepass = ["opcua"]
+  namepass = [{% if modbus.enabled and modbus.registers %}"opcua", "modbus"{% else %}"opcua"{% endif %}]
 {%- endif %}
 
 # File output for internal metrics (read by gateway dashboard)

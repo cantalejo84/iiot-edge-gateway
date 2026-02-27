@@ -74,60 +74,90 @@ async function refreshTelegrafMetrics() {
     try {
         const d = await fetchJSON("/api/dashboard/telegraf-metrics");
 
-        const opcuaCount = d.opcua_gathered;
-        lastOpcuaCount = opcuaCount;
+        lastOpcuaCount = d.opcua_gathered;
 
-        // OPC UA node
-        document.getElementById("p-opcua-read").textContent = formatNum(d.opcua_gathered);
-        document.getElementById("p-mqtt-written").textContent = formatNum(d.mqtt_written);
+        // OPC UA input node
+        setText("p-opcua-read", formatNum(d.opcua_gathered));
+
+        // Modbus input node
+        setText("p-modbus-read", formatNum(d.modbus_gathered));
+        setText("p-modbus-errors", formatNum(d.modbus_errors));
+        setText("p-modbus-scan", `${d.modbus_scan_time_ms} ms`);
+        setText("p-modbus-scan-stat", `${d.modbus_scan_time_ms} ms`);
+
+        // MQTT output
+        setText("p-mqtt-written", formatNum(d.mqtt_written));
 
         // Buffer
         const bufPct = d.mqtt_buffer_limit > 0 ? (d.mqtt_buffer_size / d.mqtt_buffer_limit) * 100 : 0;
         const bufFill = document.getElementById("p-buffer-fill");
-        bufFill.style.width = `${bufPct}%`;
-        bufFill.className = "pf-buffer-fill";
-        if (bufPct > 80) bufFill.classList.add("danger");
-        else if (bufPct > 50) bufFill.classList.add("warning");
-        document.getElementById("p-buffer-text").textContent =
-            `${formatNum(d.mqtt_buffer_size)} / ${formatNum(d.mqtt_buffer_limit)}`;
+        if (bufFill) {
+            bufFill.style.width = `${bufPct}%`;
+            bufFill.className = "pf-buffer-fill";
+            if (bufPct > 80) bufFill.classList.add("danger");
+            else if (bufPct > 50) bufFill.classList.add("warning");
+        }
+        setText("p-buffer-text", `${formatNum(d.mqtt_buffer_size)} / ${formatNum(d.mqtt_buffer_limit)}`);
 
         // Stats
-        document.getElementById("p-scan-time").textContent = `${d.scan_time_ms} ms`;
+        setText("p-scan-time", `${d.opcua_scan_time_ms} ms`);
 
         const droppedEl = document.getElementById("p-dropped");
-        droppedEl.textContent = formatNum(d.mqtt_dropped);
-        droppedEl.style.color = d.mqtt_dropped > 0 ? "var(--warning)" : "";
+        if (droppedEl) {
+            droppedEl.textContent = formatNum(d.mqtt_dropped);
+            droppedEl.style.color = d.mqtt_dropped > 0 ? "var(--warning)" : "";
+        }
 
         const errorsEl = document.getElementById("p-errors");
-        const totalErrors = d.opcua_errors + d.mqtt_errors;
-        errorsEl.textContent = `${d.opcua_errors} / ${d.mqtt_errors}`;
-        errorsEl.style.color = totalErrors > 0 ? "var(--danger)" : "";
+        if (errorsEl) {
+            const inputErrors = d.opcua_errors + d.modbus_errors;
+            errorsEl.textContent = `${inputErrors} / ${d.mqtt_errors}`;
+            errorsEl.style.color = (inputErrors + d.mqtt_errors) > 0 ? "var(--danger)" : "";
+        }
 
         const lossEl = document.getElementById("p-loss");
-        if (d.opcua_gathered > 0) {
-            const loss = Math.max(0, ((d.opcua_gathered - d.mqtt_written) / d.opcua_gathered) * 100);
-            lossEl.textContent = `${loss.toFixed(1)}%`;
-            lossEl.style.color = loss > 0 ? "var(--danger)" : "var(--success)";
-        } else {
-            lossEl.textContent = "--";
-            lossEl.style.color = "";
+        if (lossEl) {
+            const totalIn = d.opcua_gathered + d.modbus_gathered;
+            if (totalIn > 0) {
+                const loss = Math.max(0, ((totalIn - d.mqtt_written) / totalIn) * 100);
+                lossEl.textContent = `${loss.toFixed(1)}%`;
+                lossEl.style.color = loss > 0 ? "var(--danger)" : "var(--success)";
+            } else {
+                lossEl.textContent = "--";
+                lossEl.style.color = "";
+            }
         }
 
-        // Read quality
-        document.getElementById("q-read-success").textContent = formatNum(d.opcua_read_success);
-        document.getElementById("q-read-error").textContent = formatNum(d.opcua_read_error);
-
+        // OPC UA read quality (pipeline node chips)
+        setText("q-read-success", formatNum(d.opcua_read_success));
+        setText("q-read-error", formatNum(d.opcua_read_error));
         const total = d.opcua_read_success + d.opcua_read_error;
         const rate = total > 0 ? (d.opcua_read_success / total) * 100 : 0;
-        document.getElementById("q-success-rate").textContent = total > 0 ? `${rate.toFixed(1)}%` : "--";
-        document.getElementById("q-success-bar").style.width = `${rate}%`;
-        document.getElementById("q-error-bar").style.width = `${total > 0 ? 100 - rate : 0}%`;
+        setText("q-success-rate", total > 0 ? `${rate.toFixed(1)}%` : "--");
+        setWidth("q-success-bar", `${rate}%`);
+        setWidth("q-error-bar", `${total > 0 ? 100 - rate : 0}%`);
+
+        // OPC UA read quality (stats row below pipeline)
+        setText("q2-read-success", formatNum(d.opcua_read_success));
+        setText("q2-read-error", formatNum(d.opcua_read_error));
+        setText("q2-success-rate", total > 0 ? `${rate.toFixed(1)}%` : "--");
+        setWidth("q2-success-bar", `${rate}%`);
+        setWidth("q2-error-bar", `${total > 0 ? 100 - rate : 0}%`);
 
         if (d.last_updated) {
-            document.getElementById("last-updated").textContent =
-                new Date(d.last_updated * 1000).toLocaleTimeString();
+            setText("last-updated", new Date(d.last_updated * 1000).toLocaleTimeString());
         }
     } catch (e) {}
+}
+
+function setText(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+}
+
+function setWidth(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.style.width = val;
 }
 
 function setPipelineActive(active) {

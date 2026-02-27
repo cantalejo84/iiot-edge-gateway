@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block page_title %}Modbus TCP Config{% endblock %}
+
+{% block header_actions %}
+<button class="btn btn-sm btn-outline-secondary" id="btn-demo-fill" title="Fill with demo server settings">
+    <i class="bi bi-lightning-charge"></i> Use Demo Server
+</button>
+{% endblock %}
+
+{% block content %}
+
+<!-- Connection Settings -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-ethernet"></i> Connection Settings</span>
+        <div class="d-flex align-items-center gap-2">
+            <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" id="modbus-enabled" {% if config.enabled %}checked{% endif %}>
+                <label class="form-check-label" for="modbus-enabled" style="font-size:0.8rem;">Enable Modbus TCP</label>
+            </div>
+            <button class="btn btn-sm btn-outline-primary" id="btn-test-connection">
+                <i class="bi bi-plug"></i> Test
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Controller <span class="text-muted" style="font-size:0.75rem;">(host:port)</span></label>
+                <input type="text" class="form-control form-control-sm" id="modbus-controller"
+                    value="{{ config.controller }}" placeholder="192.168.1.100:502">
+                <div class="form-text">IP address and port of the Modbus TCP device</div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Slave ID</label>
+                <input type="number" class="form-control form-control-sm" id="modbus-slave-id"
+                    value="{{ config.slave_id }}" min="1" max="247">
+                <div class="form-text">Device address (1–247)</div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Timeout</label>
+                <input type="text" class="form-control form-control-sm" id="modbus-timeout"
+                    value="{{ config.timeout }}" placeholder="5s">
+                <div class="form-text">Connection timeout (e.g. 5s)</div>
+            </div>
+        </div>
+
+        <!-- Test result -->
+        <div id="test-result" class="mt-3" style="display:none;"></div>
+    </div>
+</div>
+
+<!-- Register Map -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-table"></i> Register Map</span>
+        <button class="btn btn-sm btn-outline-primary" id="btn-add-register">
+            <i class="bi bi-plus-lg"></i> Add Register
+        </button>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm mb-0" id="register-table">
+                <thead>
+                    <tr>
+                        <th style="width:20%">Name</th>
+                        <th style="width:18%">Register Type</th>
+                        <th style="width:12%">Address
+                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip"
+                                title="0-based address. Note: manuals often show 1-based (e.g. 40001 = address 0)."></i>
+                        </th>
+                        <th style="width:18%">Data Type</th>
+                        <th style="width:16%">Byte Order
+                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip"
+                                title="ABCD = Big Endian (most common). DCBA = Little Endian. Check your device manual."></i>
+                        </th>
+                        <th style="width:8%"></th>
+                    </tr>
+                </thead>
+                <tbody id="register-tbody">
+                    <!-- Rows injected by JS -->
+                </tbody>
+            </table>
+        </div>
+        <div id="register-empty" class="text-center text-muted py-4" style="font-size:0.8rem;">
+            <i class="bi bi-table" style="font-size:1.5rem;opacity:0.3;display:block;margin-bottom:.5rem;"></i>
+            No registers configured. Click <strong>Add Register</strong> to start.
+        </div>
+    </div>
+    <div class="card-footer" style="font-size:0.72rem;color:var(--text-muted);">
+        <i class="bi bi-info-circle"></i>
+        FLOAT32 and FLOAT64 occupy 2 and 4 registers respectively. Addresses must not overlap.
+        Multi-register types (UINT32, INT32, FLOAT32, FLOAT64) use consecutive addresses.
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/modbus_config.js') }}"></script>
+{% endblock %}

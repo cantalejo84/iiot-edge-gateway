@@ -1,22 +1,23 @@
 # IIoT Edge Gateway
 
-**Connect your industrial OPC UA machines to the cloud — no code required.**
+**Connect your industrial machines to the cloud — no code required.**
 
-IIoT Edge Gateway is a self-hosted web application that bridges OPC UA equipment with cloud IoT platforms. Configure your data pipeline through a clean web UI, and let [Telegraf](https://www.influxdata.com/time-series-platform/telegraf/) handle the heavy lifting.
+IIoT Edge Gateway is a self-hosted web application that bridges industrial equipment (OPC UA and Modbus TCP) with cloud IoT platforms. Configure your data pipeline through a clean web UI, and let [Telegraf](https://www.influxdata.com/time-series-platform/telegraf/) handle the heavy lifting.
 
 ---
 
 ## What it does
 
-Industrial machines speak OPC UA. Cloud platforms speak MQTT. IIoT Edge Gateway sits in the middle:
+Industrial machines speak OPC UA or Modbus. Cloud platforms speak MQTT. IIoT Edge Gateway sits in the middle:
 
 ```
-OPC UA Machines  ──►  IIoT Edge Gateway  ──►  AWS IoT Core
-                        (Telegraf agent)   ──►  Azure IoT Hub
-                                           ──►  Any MQTT broker
+OPC UA Machines  ─┐
+                   ├──►  IIoT Edge Gateway  ──►  AWS IoT Core
+Modbus Devices   ─┘       (Telegraf agent)  ──►  Azure IoT Hub
+                                            ──►  Any MQTT broker
 ```
 
-You browse your OPC UA node tree, pick the variables you want to stream, set your cloud endpoint, and deploy. The gateway generates and manages the Telegraf configuration automatically.
+You configure your inputs (OPC UA nodes or Modbus registers), set your cloud endpoint, and deploy. The gateway generates and manages the Telegraf configuration automatically.
 
 ![IIoT Edge Gateway Dashboard](screenshots/dashboard.png)
 
@@ -24,11 +25,12 @@ You browse your OPC UA node tree, pick the variables you want to stream, set you
 
 ## Features
 
-- **Visual node browser** — Navigate the OPC UA address space and select variables with a point-and-click interface
-- **Cloud-ready** — Built-in support for AWS IoT Core (auto-generates IAM policies) and Azure IoT Hub (auto-generates connection config)
-- **TLS certificate management** — Upload and manage client certificates directly from the UI
+- **OPC UA support** — Browse the node tree and select variables with a point-and-click interface
+- **Modbus TCP support** — Configure holding/input/coil/discrete registers with a register map table
+- **Simultaneous inputs** — Read from OPC UA and Modbus at the same time, merged into a single MQTT stream
+- **Cloud-ready** — Built-in support for AWS IoT Core and Azure IoT Hub with TLS certificate management
 - **Live message tail** — Subscribe to your broker in real time to verify data is flowing
-- **Pipeline dashboard** — Monitor OPC UA reads, buffer usage, MQTT delivery, and system health (CPU, RAM, disk, network)
+- **Pipeline dashboard** — Monitor reads per source, buffer usage, MQTT delivery, and system health
 - **Zero-config deploy** — One click generates `telegraf.conf` and restarts the agent
 - **Auto-save** — All configuration changes are saved automatically as you type
 - **Docker-native** — Runs on any Linux edge server or gateway hardware
@@ -38,7 +40,7 @@ You browse your OPC UA node tree, pick the variables you want to stream, set you
 ## Requirements
 
 - [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/)
-- A reachable OPC UA server
+- One or more industrial devices (OPC UA server and/or Modbus TCP device)
 - An MQTT broker (AWS IoT Core, Azure IoT Hub, or any standard broker)
 
 ---
@@ -46,14 +48,32 @@ You browse your OPC UA node tree, pick the variables you want to stream, set you
 ## Quick Start
 
 ```bash
-git clone https://github.com/your-org/iiot-edge-gateway.git
+git clone https://github.com/cantalejo84/iiot-edge-gateway.git
 cd iiot-edge-gateway
 docker compose up -d
 ```
 
 Open **http://localhost:8050** in your browser.
 
-> A demo OPC UA server and Mosquitto MQTT broker are included for testing. No external services needed to try it out.
+> Demo servers for OPC UA and Modbus TCP are included, plus a Mosquitto MQTT broker. No external services needed to try it out.
+
+---
+
+## Modbus TCP
+
+Go to **INPUT → Modbus TCP** in the sidebar. Enter the device controller address (`host:port`, default port 502), slave ID, and add your registers:
+
+| Field | Description |
+|---|---|
+| Name | Metric field name (e.g. `temperature`) |
+| Register Type | `holding`, `input`, `coil`, or `discrete` |
+| Address | **0-based** address. Note: manuals often show 1-based (40001 = address 0) |
+| Data Type | `UINT16`, `INT16`, `UINT32`, `INT32`, `FLOAT32`, `FLOAT64`, `BOOL` |
+| Byte Order | `ABCD` (Big Endian, most common), `DCBA`, `BADC`, or `CDAB` |
+
+Multi-register types (`UINT32`, `INT32`, `FLOAT32`, `FLOAT64`) occupy 2–4 consecutive registers — make sure addresses don't overlap.
+
+Use the **Use Demo Server** button to auto-fill with the built-in Modbus simulator and a set of example registers (temperature, pressure, motor speed, voltage, current).
 
 ## Updating
 

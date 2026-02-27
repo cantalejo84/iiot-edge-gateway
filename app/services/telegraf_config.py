@@ -15,5 +15,6 @@ def render_config(config):
         publishing=config.get(
             "publishing", {"mode": "individual", "group_interval": "10s"}
         ),
+        modbus=config.get("modbus", {"enabled": False, "registers": []}),
         generated_at=datetime.now(timezone.utc).isoformat(),
     )

@@ -32,33 +32,62 @@
         </span>
     </div>
     <div class="card-body">
-        <div class="pipeline-flow-v2" id="pipeline-flow">
+        {% set has_opcua = opcua_ready %}
+        {% set has_modbus = modbus_ready %}
+        {% set dual = has_opcua and has_modbus %}
 
-            <!-- OPC UA Read (big) -->
-            <div class="pf-node pf-node-opcua" id="pf-opcua">
-                <div class="pf-pulse-ring"></div>
-                <div class="pf-node-icon"><i class="bi bi-cpu"></i></div>
-                <div class="pf-node-label">OPC UA Read</div>
-                <div class="pf-node-value" id="p-opcua-read">--</div>
-                <div class="pf-quality-row">
-                    <span class="pf-quality-chip pf-q-ok" data-bs-toggle="tooltip" title="Successful node reads">
-                        <i class="bi bi-check-lg"></i> <span id="q-read-success">--</span>
-                    </span>
-                    <span class="pf-quality-chip pf-q-err" data-bs-toggle="tooltip" title="Failed node reads">
-                        <i class="bi bi-x-lg"></i> <span id="q-read-error">--</span>
-                    </span>
-                    <span class="pf-quality-chip pf-q-rate" data-bs-toggle="tooltip" title="Read success rate">
-                        <span id="q-success-rate">--</span>
-                    </span>
-                    <div class="pf-quality-bar">
-                        <div class="pf-quality-bar-fill" id="q-success-bar"></div>
-                        <div class="pf-quality-bar-err" id="q-error-bar"></div>
+        <div class="pipeline-flow-v2 {% if dual %}pipeline-dual{% endif %}" id="pipeline-flow">
+
+            <!-- Input nodes column -->
+            <div class="pf-inputs-col">
+
+                {% if has_opcua or not has_modbus %}
+                <!-- OPC UA node -->
+                <div class="pf-node pf-node-opcua" id="pf-opcua">
+                    <div class="pf-pulse-ring"></div>
+                    <div class="pf-node-icon"><i class="bi bi-cpu"></i></div>
+                    <div class="pf-node-label">OPC UA Read</div>
+                    <div class="pf-node-value" id="p-opcua-read">--</div>
+                    <div class="pf-quality-row">
+                        <span class="pf-quality-chip pf-q-ok" data-bs-toggle="tooltip" title="Successful node reads">
+                            <i class="bi bi-check-lg"></i> <span id="q-read-success">--</span>
+                        </span>
+                        <span class="pf-quality-chip pf-q-err" data-bs-toggle="tooltip" title="Failed node reads">
+                            <i class="bi bi-x-lg"></i> <span id="q-read-error">--</span>
+                        </span>
+                        <span class="pf-quality-chip pf-q-rate" data-bs-toggle="tooltip" title="Read success rate">
+                            <span id="q-success-rate">--</span>
+                        </span>
+                        <div class="pf-quality-bar">
+                            <div class="pf-quality-bar-fill" id="q-success-bar"></div>
+                            <div class="pf-quality-bar-err" id="q-error-bar"></div>
+                        </div>
                     </div>
                 </div>
+                {% endif %}
+
+                {% if has_modbus %}
+                <!-- Modbus node -->
+                <div class="pf-node pf-node-modbus" id="pf-modbus">
+                    <div class="pf-pulse-ring"></div>
+                    <div class="pf-node-icon"><i class="bi bi-ethernet"></i></div>
+                    <div class="pf-node-label">Modbus Read</div>
+                    <div class="pf-node-value" id="p-modbus-read">--</div>
+                    <div class="pf-quality-row">
+                        <span class="pf-quality-chip pf-q-err" data-bs-toggle="tooltip" title="Modbus read errors">
+                            <i class="bi bi-x-lg"></i> <span id="p-modbus-errors">--</span>
+                        </span>
+                        <span class="pf-quality-chip pf-q-ok" data-bs-toggle="tooltip" title="Modbus scan time">
+                            <i class="bi bi-clock"></i> <span id="p-modbus-scan">-- ms</span>
+                        </span>
+                    </div>
+                </div>
+                {% endif %}
+
             </div>
 
-            <!-- Connector 1 -->
-            <div class="pf-connector">
+            <!-- Connector 1 (fork when dual) -->
+            <div class="pf-connector {% if dual %}pf-connector-fork{% endif %}">
                 <div class="pf-connector-line"></div>
                 <div class="pf-connector-x"><i class="bi bi-x"></i></div>
                 <div class="flow-dot"></div>
@@ -94,13 +123,24 @@
 
         <!-- Stats row -->
         <div class="dash-grid dash-grid-4 mt-3">
+            {% if has_opcua or not has_modbus %}
             <div class="pipeline-stat">
                 <div class="pipeline-stat-value" id="p-scan-time">--</div>
                 <div class="pipeline-stat-label">
-                    Scan Time
-                    <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Time Telegraf takes to read all OPC UA nodes per cycle. If this exceeds the polling interval, data gaps may occur."></i>
+                    OPC UA Scan
+                    <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Time Telegraf takes to read all OPC UA nodes per cycle."></i>
                 </div>
             </div>
+            {% endif %}
+            {% if has_modbus %}
+            <div class="pipeline-stat">
+                <div class="pipeline-stat-value" id="p-modbus-scan-stat">--</div>
+                <div class="pipeline-stat-label">
+                    Modbus Scan
+                    <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Time Telegraf takes to poll all Modbus registers per cycle."></i>
+                </div>
+            </div>
+            {% endif %}
             <div class="pipeline-stat">
                 <div class="pipeline-stat-value" id="p-dropped">--</div>
                 <div class="pipeline-stat-label">
@@ -111,18 +151,40 @@
             <div class="pipeline-stat">
                 <div class="pipeline-stat-value" id="p-errors">--</div>
                 <div class="pipeline-stat-label">
-                    Errors (OPC / MQTT)
-                    <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Connection or read errors on OPC UA (left) and MQTT write errors (right)."></i>
+                    Errors (In / MQTT)
+                    <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Input read errors (OPC UA + Modbus combined) / MQTT write errors."></i>
                 </div>
             </div>
             <div class="pipeline-stat">
                 <div class="pipeline-stat-value" id="p-loss">--</div>
                 <div class="pipeline-stat-label">
                     Loss Rate
-                    <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Percentage of OPC UA reads that did not reach MQTT. Should be 0%."></i>
+                    <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Percentage of collected metrics that did not reach MQTT. Should be 0%."></i>
                 </div>
             </div>
         </div>
+
+        <!-- Data quality (OPC UA only) -->
+        {% if has_opcua or not has_modbus %}
+        <div class="dash-grid dash-grid-4 mt-2">
+            <div class="quality-stat">
+                <div class="quality-stat-value text-success" id="q2-read-success">--</div>
+                <div class="quality-stat-label">OPC UA OK reads</div>
+            </div>
+            <div class="quality-stat">
+                <div class="quality-stat-value text-danger" id="q2-read-error">--</div>
+                <div class="quality-stat-label">OPC UA read errors</div>
+            </div>
+            <div class="quality-stat col-span-2">
+                <div class="pf-quality-bar" style="height:6px;border-radius:3px;">
+                    <div class="pf-quality-bar-fill" id="q2-success-bar"></div>
+                    <div class="pf-quality-bar-err" id="q2-error-bar"></div>
+                </div>
+                <div class="quality-stat-label mt-1">Success rate: <strong id="q2-success-rate">--</strong></div>
+            </div>
+        </div>
+        {% endif %}
+
     </div>
 </div>
 

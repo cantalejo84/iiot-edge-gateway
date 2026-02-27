@@ -23,6 +23,11 @@
         </button>
     </li>
     <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-modbus" type="button">
+            <i class="bi bi-ethernet"></i> Modbus TCP
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
         <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-mqtt" type="button">
             <i class="bi bi-cloud-arrow-up"></i> MQTT &amp; Cloud
         </button>
@@ -553,6 +558,121 @@ ns=2;s=MyTag    (string)
 ns=2;g=abc-...  (guid)</code>
                         <p style="font-size:0.78rem;margin-top:0.5rem;">The browser fills these in automatically when you select a node.</p>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── MODBUS TCP ────────────────────────────────────────────── -->
+    <div class="tab-pane fade" id="tab-modbus">
+        <div class="row g-4">
+            <div class="col-lg-8">
+
+                <div class="help-section">
+                    <h2 class="help-h2">What is Modbus TCP?</h2>
+                    <p class="help-p">
+                        Modbus is the most widespread protocol in industrial automation. Virtually every PLC, VFD
+                        (variable frequency drive), energy meter, and legacy sensor supports it.
+                        <strong>Modbus TCP</strong> runs Modbus over a standard Ethernet network on port 502.
+                    </p>
+                    <p class="help-p">
+                        Unlike OPC UA, Modbus has <strong>no autodiscovery</strong>. You must know the register map
+                        of your device — this information is in the device manual or datasheet.
+                    </p>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Register types</h2>
+                    <table class="help-table">
+                        <thead><tr><th>Type</th><th>Access</th><th>Size</th><th>Use case</th></tr></thead>
+                        <tbody>
+                            <tr><td><code>holding</code></td><td>Read / Write</td><td>16-bit</td><td>Setpoints, parameters, most analog values</td></tr>
+                            <tr><td><code>input</code></td><td>Read only</td><td>16-bit</td><td>Measurements from sensors</td></tr>
+                            <tr><td><code>coil</code></td><td>Read / Write</td><td>1-bit</td><td>Digital outputs (relay states)</td></tr>
+                            <tr><td><code>discrete</code></td><td>Read only</td><td>1-bit</td><td>Digital inputs (switches, alarms)</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Addressing — the 0-based vs 1-based trap</h2>
+                    <p class="help-p">
+                        Modbus device manuals typically show <strong>1-based addresses</strong> like
+                        <code>40001</code> (first holding register). Telegraf uses <strong>0-based addresses</strong>.
+                    </p>
+                    <div class="help-callout-warning">
+                        <strong>Rule:</strong> subtract 1 from the manual address and drop the leading 4 (for holding).
+                        <br>Manual says <code>40001</code> → enter address <code>0</code>.
+                        <br>Manual says <code>40003</code> → enter address <code>2</code>.
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Data types and register count</h2>
+                    <table class="help-table">
+                        <thead><tr><th>Data Type</th><th>Registers used</th><th>Description</th></tr></thead>
+                        <tbody>
+                            <tr><td>UINT16 / INT16</td><td>1</td><td>16-bit unsigned / signed integer</td></tr>
+                            <tr><td>UINT32 / INT32</td><td>2</td><td>32-bit unsigned / signed integer</td></tr>
+                            <tr><td>FLOAT32</td><td>2</td><td>32-bit IEEE 754 float (most common for analog)</td></tr>
+                            <tr><td>FLOAT64</td><td>4</td><td>64-bit double precision float</td></tr>
+                            <tr><td>BOOL</td><td>1</td><td>Boolean (coil / discrete)</td></tr>
+                        </tbody>
+                    </table>
+                    <p class="help-p">
+                        Multi-register types must use consecutive addresses. If temperature is FLOAT32 at address 0,
+                        it occupies registers 0 and 1 — the next field must start at address 2 or higher.
+                    </p>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Byte order</h2>
+                    <p class="help-p">
+                        Multi-register values can be stored in different byte orders depending on the device manufacturer.
+                        Check your device manual — most modern PLCs use <strong>ABCD (Big Endian)</strong>.
+                    </p>
+                    <table class="help-table">
+                        <thead><tr><th>Order</th><th>Also known as</th><th>Common in</th></tr></thead>
+                        <tbody>
+                            <tr><td>ABCD</td><td>Big Endian</td><td>Siemens, most modern PLCs</td></tr>
+                            <tr><td>DCBA</td><td>Little Endian</td><td>Some older Schneider devices</td></tr>
+                            <tr><td>BADC</td><td>Mid-Big Endian</td><td>Some ABB and Modicon devices</td></tr>
+                            <tr><td>CDAB</td><td>Mid-Little Endian</td><td>Some energy meters</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Reading from OPC UA and Modbus simultaneously</h2>
+                    <p class="help-p">
+                        Both inputs can be active at the same time. Telegraf runs them in parallel and publishes
+                        everything to the same MQTT topic stream. The dashboard Pipeline Health section shows
+                        each source separately when both are configured.
+                    </p>
+                    <div class="help-diagram">
+<pre>OPC UA ──┐
+          ├──► Telegraf buffer ──► MQTT ──► Cloud
+Modbus ──┘</pre>
+                    </div>
+                </div>
+
+            </div>
+            <div class="col-lg-4">
+                <div class="help-callout-info">
+                    <strong>Demo server included</strong><br>
+                    Click <em>Use Demo Server</em> on the Modbus TCP config page to connect to the built-in
+                    simulator. It exposes 5 FLOAT32 holding registers (temperature, pressure, motor speed,
+                    voltage, current) that update every 2 seconds.
+                </div>
+                <div class="help-callout-tip mt-3">
+                    <strong>Can't connect?</strong><br>
+                    Check: firewall rules on port 502, slave ID matches the device (default 1),
+                    and the device is in <em>server</em> (not master) mode.
+                </div>
+                <div class="help-callout-warning mt-3">
+                    <strong>Addresses are 0-based</strong><br>
+                    Always subtract 1 from the address shown in the device manual when the manual uses
+                    1-based notation (40001, 40002…).
                 </div>
             </div>
         </div>

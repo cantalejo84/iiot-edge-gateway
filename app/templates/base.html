@@ -48,6 +48,7 @@
                 <li class="nav-item">
                     <a class="nav-link {% if request.path.startswith('/opcua') %}active{% endif %}" href="/opcua/config">
                         <i class="bi bi-plug"></i> OPC UA Config
+                        <span class="nav-input-dot {% if opcua_ready %}dot-ready{% endif %}" title="{% if opcua_ready %}Nodes configured{% else %}No nodes selected{% endif %}"></span>
                     </a>
                 </li>
                 <li class="nav-item nav-child">
@@ -63,6 +64,12 @@
                 <li class="nav-item nav-child">
                     <a class="nav-link {% if request.path == '/opcua/nodes' %}active{% endif %}" href="/opcua/nodes">
                         <i class="bi bi-check2-square"></i> Node Selection
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.path.startswith('/modbus') %}active{% endif %}" href="/modbus/config">
+                        <i class="bi bi-ethernet"></i> Modbus TCP
+                        <span class="nav-input-dot {% if modbus_ready %}dot-ready{% endif %}" title="{% if modbus_ready %}Registers configured{% else %}Not configured{% endif %}"></span>
                     </a>
                 </li>
                 <li class="nav-section-label nav-section-output">OUTPUT</li>

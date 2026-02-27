@@ -13,6 +13,13 @@ DEFAULT_CONFIG = {
     },
     "nodes": [],
     "publishing": {"mode": "individual", "group_interval": "10s"},
+    "modbus": {
+        "enabled": False,
+        "controller": "modbus-demo-server:502",
+        "slave_id": 1,
+        "timeout": "5s",
+        "registers": [],
+    },
     "mqtt": {
         "endpoint": "",
         "topic_pattern": "iiot/gateway/{{ .Hostname }}/{{ .PluginName }}",
@@ -32,3 +39,7 @@ OPCUA_SECURITY_POLICIES = ["None", "Basic128Rsa15", "Basic256", "Basic256Sha256"
 OPCUA_SECURITY_MODES = ["None", "Sign", "SignAndEncrypt"]
 MQTT_QOS_OPTIONS = [0, 1, 2]
 MQTT_DATA_FORMATS = ["json", "influx"]
+
+MODBUS_REGISTER_TYPES = ["holding", "input", "coil", "discrete"]
+MODBUS_DATA_TYPES = ["UINT16", "INT16", "UINT32", "INT32", "FLOAT32", "FLOAT64", "BOOL"]
+MODBUS_BYTE_ORDERS = ["ABCD", "DCBA", "BADC", "CDAB"]
