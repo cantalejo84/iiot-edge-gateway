@@ -1,6 +1,7 @@
 import asyncio
-import random
 import logging
+import random
+
 from asyncua import Server, ua
 
 logging.basicConfig(level=logging.INFO)
@@ -37,13 +38,24 @@ async def main():
 
     # Utilities
     utilities = await plant.add_object(idx, "Utilities")
-    power = await utilities.add_variable(idx, "PowerConsumption", 150.0, ua.VariantType.Double)
+    power = await utilities.add_variable(
+        idx, "PowerConsumption", 150.0, ua.VariantType.Double
+    )
     water = await utilities.add_variable(idx, "WaterFlow", 45.0, ua.VariantType.Double)
 
     # Make variables writable (for testing)
-    for var in [l1_temp, l1_pressure, l1_speed, l1_status,
-                l2_temp, l2_pressure, l2_speed, l2_status,
-                power, water]:
+    for var in [
+        l1_temp,
+        l1_pressure,
+        l1_speed,
+        l1_status,
+        l2_temp,
+        l2_pressure,
+        l2_speed,
+        l2_status,
+        power,
+        water,
+    ]:
         await var.set_writable()
 
     logger.info("Starting OPC UA Test Server at opc.tcp://0.0.0.0:4840")
@@ -53,12 +65,16 @@ async def main():
             # Simulate changing values
             await l1_temp.write_value(round(random.uniform(20.0, 35.0), 2))
             await l1_pressure.write_value(round(random.uniform(1.0, 5.0), 2))
-            await l1_speed.write_value(ua.Variant(random.randint(100, 500), ua.VariantType.Int32))
+            await l1_speed.write_value(
+                ua.Variant(random.randint(100, 500), ua.VariantType.Int32)
+            )
             await l1_status.write_value(random.choice([True, True, True, False]))
 
             await l2_temp.write_value(round(random.uniform(18.0, 30.0), 2))
             await l2_pressure.write_value(round(random.uniform(1.5, 4.5), 2))
-            await l2_speed.write_value(ua.Variant(random.randint(150, 450), ua.VariantType.Int32))
+            await l2_speed.write_value(
+                ua.Variant(random.randint(150, 450), ua.VariantType.Int32)
+            )
             await l2_status.write_value(random.choice([True, True, True, False]))
 
             await power.write_value(round(random.uniform(100.0, 300.0), 2))

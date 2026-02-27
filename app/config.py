@@ -9,13 +9,10 @@ DEFAULT_CONFIG = {
         "connect_timeout": "10s",
         "request_timeout": "5s",
         "certificate": "",
-        "private_key": ""
+        "private_key": "",
     },
     "nodes": [],
-    "publishing": {
-        "mode": "individual",
-        "group_interval": "10s"
-    },
+    "publishing": {"mode": "individual", "group_interval": "10s"},
     "mqtt": {
         "endpoint": "",
         "topic_pattern": "iiot/gateway/{{ .Hostname }}/{{ .PluginName }}",
@@ -25,12 +22,9 @@ DEFAULT_CONFIG = {
         "tls_cert": "",
         "tls_key": "",
         "username": "",
-        "password": ""
+        "password": "",
     },
-    "_meta": {
-        "last_modified": None,
-        "last_applied": None
-    }
+    "_meta": {"last_modified": None, "last_applied": None},
 }
 
 OPCUA_AUTH_METHODS = ["Anonymous", "UserName", "Certificate"]

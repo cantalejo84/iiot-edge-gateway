@@ -1,9 +1,9 @@
 import json
 import os
 import time
+import urllib.request
 
 import psutil
-import urllib.request
 
 
 def get_system_health():
@@ -23,6 +23,7 @@ def get_system_health():
 
 def get_telegraf_status():
     from flask import current_app
+
     health_url = current_app.config.get("TELEGRAF_HEALTH_URL", "http://localhost:8080")
     try:
         req = urllib.request.urlopen(health_url, timeout=3)
@@ -38,7 +39,10 @@ _acc = {"opcua_total": 0, "mqtt_total": 0, "last_ts": None}
 
 def get_telegraf_metrics():
     from flask import current_app
-    metrics_file = current_app.config.get("TELEGRAF_METRICS_FILE", "/tmp/telegraf-metrics/metrics.json")
+
+    metrics_file = current_app.config.get(
+        "TELEGRAF_METRICS_FILE", "/tmp/telegraf-metrics/metrics.json"
+    )
 
     default = {
         "opcua_gathered": 0,
@@ -78,13 +82,23 @@ def get_telegraf_metrics():
                 tags = data.get("tags", {})
                 fields = data.get("fields", {})
 
-                if name == "internal_gather" and tags.get("input") == "opcua" and not found["opcua_gather"]:
+                if (
+                    name == "internal_gather"
+                    and tags.get("input") == "opcua"
+                    and not found["opcua_gather"]
+                ):
                     metrics["opcua_errors"] = fields.get("errors", 0)
-                    metrics["scan_time_ms"] = round(fields.get("gather_time_ns", 0) / 1_000_000, 2)
+                    metrics["scan_time_ms"] = round(
+                        fields.get("gather_time_ns", 0) / 1_000_000, 2
+                    )
                     metrics["last_updated"] = data.get("timestamp")
                     found["opcua_gather"] = True
 
-                elif name == "internal_write" and tags.get("output") == "mqtt" and not found["mqtt_write"]:
+                elif (
+                    name == "internal_write"
+                    and tags.get("output") == "mqtt"
+                    and not found["mqtt_write"]
+                ):
                     # _cycle_opcua = published to MQTT output (metrics_added)
                     # _cycle_mqtt  = confirmed by broker       (metrics_written)
                     metrics["_cycle_opcua"] = fields.get("metrics_added", 0)
@@ -123,8 +137,11 @@ def get_telegraf_metrics():
 def get_container_status():
     try:
         import docker
+
         client = docker.from_env()
-        project_containers = client.containers.list(all=True, filters={"label": "com.docker.compose.project"})
+        project_containers = client.containers.list(
+            all=True, filters={"label": "com.docker.compose.project"}
+        )
 
         # Detect our project name from any container we're running inside
         my_project = None
@@ -157,13 +174,20 @@ def get_container_status():
             status = c.status
             if status == "exited":
                 status = "stopped"
-            result.append({
-                "name": display_names.get(service, service),
-                "status": status,
-            })
+            result.append(
+                {
+                    "name": display_names.get(service, service),
+                    "status": status,
+                }
+            )
 
         order = ["Edge UI", "Telegraf Data Agent"]
-        result.sort(key=lambda x: (order.index(x["name"]) if x["name"] in order else len(order), x["name"]))
+        result.sort(
+            key=lambda x: (
+                order.index(x["name"]) if x["name"] in order else len(order),
+                x["name"],
+            )
+        )
         return result
     except Exception:
         return []

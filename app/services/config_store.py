@@ -1,6 +1,6 @@
+import copy
 import json
 import os
-import copy
 import threading
 from datetime import datetime, timezone
 
@@ -11,6 +11,7 @@ _lock = threading.Lock()
 
 def _config_path():
     from flask import current_app
+
     return os.path.join(current_app.config["DATA_DIR"], "config.json")
 
 

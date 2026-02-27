@@ -1,5 +1,6 @@
 import asyncio
-from flask import Blueprint, jsonify, request, render_template
+
+from flask import Blueprint, jsonify, render_template, request
 
 from app.services import config_store
 
@@ -7,6 +8,7 @@ opcua_bp = Blueprint("opcua", __name__)
 
 
 # --- Page routes ---
+
 
 @opcua_bp.route("/opcua/config")
 def opcua_config_page():
@@ -30,6 +32,7 @@ def opcua_nodes_page():
 
 # --- API routes ---
 
+
 @opcua_bp.route("/api/opcua/config", methods=["GET"])
 def get_opcua_config():
     return jsonify(config_store.get_section("opcua"))
@@ -44,8 +47,9 @@ def save_opcua_config():
 
 @opcua_bp.route("/api/opcua/test-connection", methods=["POST"])
 def test_opcua_connection():
-    from app.services.opcua_client import test_connection
     from app.services import event_log
+    from app.services.opcua_client import test_connection
+
     config = config_store.get_section("opcua")
     data = request.get_json() or {}
     merged = {**config, **data}
@@ -54,13 +58,19 @@ def test_opcua_connection():
     if result.get("ok"):
         event_log.log("info", "opcua", f"Connection OK → {endpoint}")
     else:
-        event_log.log("error", "opcua", f"Connection failed → {endpoint}", detail=result.get("detail") or result.get("error"))
+        event_log.log(
+            "error",
+            "opcua",
+            f"Connection failed → {endpoint}",
+            detail=result.get("detail") or result.get("error"),
+        )
     return jsonify(result)
 
 
 @opcua_bp.route("/api/opcua/browse", methods=["GET"])
 def browse_opcua_nodes():
     from app.services.opcua_client import browse_children
+
     config = config_store.get_section("opcua")
     node_id = request.args.get("node_id", "ns=0;i=85")
     try:
@@ -73,6 +83,7 @@ def browse_opcua_nodes():
 @opcua_bp.route("/api/opcua/node-details", methods=["GET"])
 def get_node_details():
     from app.services.opcua_client import read_node_details
+
     config = config_store.get_section("opcua")
     node_id = request.args.get("node_id")
     if not node_id:

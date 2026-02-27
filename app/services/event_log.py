@@ -3,6 +3,7 @@ Event log: ring buffer for important system events.
 Only logs meaningful actions (connection tests, config apply, agent start/stop).
 Does NOT log polling, auto-save, or browsing operations.
 """
+
 import threading
 from collections import deque
 from datetime import datetime, timezone

@@ -1,7 +1,8 @@
 import json
 import os
 import re
-from flask import Blueprint, jsonify, request, render_template, current_app
+
+from flask import Blueprint, current_app, jsonify, render_template, request
 
 from app.services import config_store
 
@@ -19,7 +20,9 @@ def mqtt_config_page():
         "tls_cert": os.path.exists(os.path.join(certs_dir, "cert.pem")),
         "tls_key": os.path.exists(os.path.join(certs_dir, "key.pem")),
     }
-    return render_template("mqtt_config.html", config=config, certs_status=certs_status, is_dirty=is_dirty)
+    return render_template(
+        "mqtt_config.html", config=config, certs_status=certs_status, is_dirty=is_dirty
+    )
 
 
 @mqtt_bp.route("/api/mqtt/config", methods=["GET"])
@@ -39,7 +42,11 @@ def upload_certs():
     certs_dir = os.path.join(current_app.config["DATA_DIR"], "certs", "mqtt")
     uploaded = []
 
-    for field, filename in [("tls_ca", "ca.pem"), ("tls_cert", "cert.pem"), ("tls_key", "key.pem")]:
+    for field, filename in [
+        ("tls_ca", "ca.pem"),
+        ("tls_cert", "cert.pem"),
+        ("tls_key", "key.pem"),
+    ]:
         if field in request.files:
             f = request.files[field]
             if f.filename:
@@ -48,19 +55,23 @@ def upload_certs():
 
     if uploaded:
         # Update config with container-side cert paths
-        config_store.update_section("mqtt", {
-            "tls_ca": "/etc/telegraf/certs/mqtt/ca.pem",
-            "tls_cert": "/etc/telegraf/certs/mqtt/cert.pem",
-            "tls_key": "/etc/telegraf/certs/mqtt/key.pem",
-        })
+        config_store.update_section(
+            "mqtt",
+            {
+                "tls_ca": "/etc/telegraf/certs/mqtt/ca.pem",
+                "tls_cert": "/etc/telegraf/certs/mqtt/cert.pem",
+                "tls_key": "/etc/telegraf/certs/mqtt/key.pem",
+            },
+        )
 
     return jsonify({"ok": True, "uploaded": uploaded})
 
 
 @mqtt_bp.route("/api/mqtt/test-connection", methods=["POST"])
 def test_mqtt_connection():
-    from app.services.mqtt_client import test_connection
     from app.services import event_log
+    from app.services.mqtt_client import test_connection
+
     config = config_store.get_section("mqtt")
     data = request.get_json() or {}
     merged = {**config, **data}
@@ -70,7 +81,12 @@ def test_mqtt_connection():
     if result.get("ok"):
         event_log.log("info", "mqtt", f"Connection OK → {endpoint}")
     else:
-        event_log.log("error", "mqtt", f"Connection failed → {endpoint}", detail=result.get("error"))
+        event_log.log(
+            "error",
+            "mqtt",
+            f"Connection failed → {endpoint}",
+            detail=result.get("error"),
+        )
     return jsonify(result)
 
 
@@ -80,7 +96,7 @@ def get_azure_iot_config():
     endpoint = config.get("endpoint", "")
 
     hub_name = "your-iothub"
-    match = re.search(r'([a-zA-Z0-9-]+)\.azure-devices\.net', endpoint)
+    match = re.search(r"([a-zA-Z0-9-]+)\.azure-devices\.net", endpoint)
     if match:
         hub_name = match.group(1)
 
@@ -88,21 +104,32 @@ def get_azure_iot_config():
     username = f"{hub_name}.azure-devices.net/{device_id}/?api-version=2021-04-12"
     topic = f"devices/{device_id}/messages/events/"
 
-    return jsonify({
-        "ok": True,
-        "hub_name": hub_name,
-        "username": username,
-        "topic": topic,
-    })
+    return jsonify(
+        {
+            "ok": True,
+            "hub_name": hub_name,
+            "username": username,
+            "topic": topic,
+        }
+    )
 
 
 @mqtt_bp.route("/api/mqtt/clear", methods=["POST"])
 def clear_mqtt_config():
-    config_store.update_section("mqtt", {
-        "endpoint": "", "topic_pattern": "", "qos": 0,
-        "data_format": "json", "tls_ca": "", "tls_cert": "", "tls_key": "",
-        "username": "", "password": "",
-    })
+    config_store.update_section(
+        "mqtt",
+        {
+            "endpoint": "",
+            "topic_pattern": "",
+            "qos": 0,
+            "data_format": "json",
+            "tls_ca": "",
+            "tls_cert": "",
+            "tls_key": "",
+            "username": "",
+            "password": "",
+        },
+    )
     certs_dir = os.path.join(current_app.config["DATA_DIR"], "certs", "mqtt")
     for fname in ["ca.pem", "cert.pem", "key.pem"]:
         fpath = os.path.join(certs_dir, fname)
@@ -115,7 +142,11 @@ def clear_mqtt_config():
 def delete_certs():
     certs_dir = os.path.join(current_app.config["DATA_DIR"], "certs", "mqtt")
     deleted = []
-    for fname, field in [("ca.pem", "tls_ca"), ("cert.pem", "tls_cert"), ("key.pem", "tls_key")]:
+    for fname, field in [
+        ("ca.pem", "tls_ca"),
+        ("cert.pem", "tls_cert"),
+        ("key.pem", "tls_key"),
+    ]:
         fpath = os.path.join(certs_dir, fname)
         if os.path.exists(fpath):
             os.remove(fpath)
@@ -131,11 +162,11 @@ def get_aws_iot_policy():
     topic_pattern = config.get("topic_pattern", "")
 
     region = "us-east-1"
-    match = re.search(r'\.iot\.([a-z0-9-]+)\.amazonaws\.com', endpoint)
+    match = re.search(r"\.iot\.([a-z0-9-]+)\.amazonaws\.com", endpoint)
     if match:
         region = match.group(1)
 
-    topic_base = re.sub(r'\{\{[^}]+\}\}', '*', topic_pattern).strip("/")
+    topic_base = re.sub(r"\{\{[^}]+\}\}", "*", topic_pattern).strip("/")
     if not topic_base:
         topic_base = "iiot/gateway/*"
 
@@ -159,7 +190,9 @@ def get_aws_iot_policy():
             },
         ],
     }
-    return jsonify({"ok": True, "policy": json.dumps(policy, indent=2), "region": region})
+    return jsonify(
+        {"ok": True, "policy": json.dumps(policy, indent=2), "region": region}
+    )
 
 
 @mqtt_bp.route("/mqtt/messages")
@@ -172,6 +205,7 @@ def mqtt_messages_page():
 @mqtt_bp.route("/api/mqtt/messages/clear", methods=["POST"])
 def clear_messages():
     from app.services.mqtt_client import tail_subscriber
+
     tail_subscriber.clear_messages()
     return jsonify({"ok": True})
 
@@ -179,6 +213,7 @@ def clear_messages():
 @mqtt_bp.route("/api/mqtt/tail/start", methods=["POST"])
 def start_tail():
     from app.services.mqtt_client import tail_subscriber
+
     # Use the last-deployed MQTT config so the tail matches what Telegraf is actually using
     config = config_store.get_applied_section("mqtt")
     certs_dir = os.path.join(current_app.config["DATA_DIR"], "certs", "mqtt")
@@ -189,6 +224,7 @@ def start_tail():
 @mqtt_bp.route("/api/mqtt/tail/stop", methods=["POST"])
 def stop_tail():
     from app.services.mqtt_client import tail_subscriber
+
     tail_subscriber.stop()
     return jsonify({"ok": True})
 
@@ -196,8 +232,11 @@ def stop_tail():
 @mqtt_bp.route("/api/mqtt/tail", methods=["GET"])
 def get_tail():
     from app.services.mqtt_client import tail_subscriber
-    return jsonify({
-        "running": tail_subscriber.is_running(),
-        "topic": tail_subscriber.get_subscribe_topic(),
-        "messages": tail_subscriber.get_messages(),
-    })
+
+    return jsonify(
+        {
+            "running": tail_subscriber.is_running(),
+            "topic": tail_subscriber.get_subscribe_topic(),
+            "messages": tail_subscriber.get_messages(),
+        }
+    )

@@ -40,9 +40,17 @@ def _friendly_error(e):
     msg = str(e)
     if "Errno 111" in msg or "Connect call failed" in msg:
         return "Server unreachable — connection refused"
-    if "Errno 110" in msg or "timed out" in msg.lower() or "TimeoutError" in type(e).__name__:
+    if (
+        "Errno 110" in msg
+        or "timed out" in msg.lower()
+        or "TimeoutError" in type(e).__name__
+    ):
         return "Connection timed out — check endpoint and network"
-    if "Errno -2" in msg or "Name or service not known" in msg or "nodename nor servname" in msg:
+    if (
+        "Errno -2" in msg
+        or "Name or service not known" in msg
+        or "nodename nor servname" in msg
+    ):
         return "Hostname not found — check the endpoint URL"
     if "BadUserAccessDenied" in msg or "BadIdentityTokenRejected" in msg:
         return "Authentication failed — check credentials"
@@ -73,12 +81,14 @@ async def browse_children(config, node_id_str):
             browse_name = await child.read_browse_name()
             node_class = await child.read_node_class()
             has_children = len(await child.get_children()) > 0
-            result.append({
-                "node_id": child.nodeid.to_string(),
-                "display_name": browse_name.Name,
-                "node_class": node_class.name,
-                "has_children": has_children,
-            })
+            result.append(
+                {
+                    "node_id": child.nodeid.to_string(),
+                    "display_name": browse_name.Name,
+                    "node_class": node_class.name,
+                    "has_children": has_children,
+                }
+            )
         return result
 
 

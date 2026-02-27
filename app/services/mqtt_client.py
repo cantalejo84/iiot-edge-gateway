@@ -2,7 +2,6 @@ import os
 import re
 import ssl
 import threading
-import time
 from collections import deque
 from datetime import datetime, timezone
 
@@ -23,7 +22,11 @@ def _configure_tls(client, certs_dir):
     cert_path = os.path.join(certs_dir, "cert.pem")
     key_path = os.path.join(certs_dir, "key.pem")
 
-    if os.path.exists(ca_path) and os.path.exists(cert_path) and os.path.exists(key_path):
+    if (
+        os.path.exists(ca_path)
+        and os.path.exists(cert_path)
+        and os.path.exists(key_path)
+    ):
         client.tls_set(
             ca_certs=ca_path,
             certfile=cert_path,
@@ -55,7 +58,9 @@ def test_connection(config, certs_dir):
             result = {"ok": False, "error": f"Connection refused: {reason_code}"}
         event.set()
 
-    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="iiot-gateway-test")
+    client = mqtt.Client(
+        mqtt.CallbackAPIVersion.VERSION2, client_id="iiot-gateway-test"
+    )
     client.on_connect = on_connect
 
     if use_tls:
@@ -103,10 +108,14 @@ class MqttTailSubscriber:
         # Convert Telegraf topic template to MQTT wildcard
         # e.g. "iiot/gateway/{{ .Hostname }}/{{ .PluginName }}" -> "iiot/gateway/+/+"
         topic_pattern = config.get("topic_pattern", "#")
-        subscribe_topic = re.sub(r"\{\{[^}]+\}\}", "+", topic_pattern) if topic_pattern else "#"
+        subscribe_topic = (
+            re.sub(r"\{\{[^}]+\}\}", "+", topic_pattern) if topic_pattern else "#"
+        )
         self._subscribe_topic = subscribe_topic
 
-        client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="iiot-gateway-tail")
+        client = mqtt.Client(
+            mqtt.CallbackAPIVersion.VERSION2, client_id="iiot-gateway-tail"
+        )
 
         def on_connect(c, userdata, flags, reason_code, properties=None):
             if reason_code == 0:
@@ -115,11 +124,13 @@ class MqttTailSubscriber:
         def on_message(c, userdata, msg):
             payload = msg.payload.decode("utf-8", errors="replace")[:2048]
             with self._lock:
-                self._messages.appendleft({
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "topic": msg.topic,
-                    "payload": payload,
-                })
+                self._messages.appendleft(
+                    {
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "topic": msg.topic,
+                        "payload": payload,
+                    }
+                )
 
         client.on_connect = on_connect
         client.on_message = on_message
