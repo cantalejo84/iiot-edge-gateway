@@ -41,7 +41,8 @@ def get_telegraf_metrics():
     from flask import current_app
 
     metrics_file = current_app.config.get(
-        "TELEGRAF_METRICS_FILE", "/tmp/telegraf-metrics/metrics.json"  # nosec B108
+        "TELEGRAF_METRICS_FILE",
+        "/tmp/telegraf-metrics/metrics.json",  # nosec B108
     )
 
     default = {
