@@ -6,6 +6,7 @@ const BYTE_ORDERS = ["ABCD", "DCBA", "BADC", "CDAB"];
 
 let saveTimer = null;
 let registers = [];
+let modbusEnabled = true;
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
@@ -16,17 +17,32 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const cfg = await fetchJSON("/api/modbus/config");
     registers = cfg.registers || [];
+    modbusEnabled = cfg.enabled !== false;
     renderTable();
 
     // Wire auto-save on connection fields
     ["modbus-controller", "modbus-slave-id", "modbus-timeout"].forEach(id => {
         document.getElementById(id).addEventListener("input", scheduleSave);
     });
-    document.getElementById("modbus-enabled").addEventListener("change", scheduleSave);
 
     document.getElementById("btn-add-register").addEventListener("click", addRegister);
     document.getElementById("btn-test-connection").addEventListener("click", testConnection);
     document.getElementById("btn-demo-fill").addEventListener("click", fillDemo);
+
+    // Disable / Enable Modbus TCP
+    document.getElementById("btn-toggle-modbus").addEventListener("click", async () => {
+        const btn = document.getElementById("btn-toggle-modbus");
+        const currentlyEnabled = btn.dataset.enabled === "true";
+        setLoading(btn, true);
+        const data = await fetchJSON("/api/modbus/config", {
+            method: "POST",
+            body: JSON.stringify({ enabled: !currentlyEnabled }),
+        });
+        if (data.ok) {
+            window.location.reload();
+        }
+        setLoading(btn, false);
+    });
 });
 
 // ── Register table ────────────────────────────────────────────────────────────
@@ -129,20 +145,28 @@ function addRegister() {
 // ── Save ──────────────────────────────────────────────────────────────────────
 
 function scheduleSave() {
+    const indicator = document.getElementById("save-indicator");
+    if (indicator) indicator.textContent = "Unsaved changes...";
     clearTimeout(saveTimer);
     saveTimer = setTimeout(save, 800);
 }
 
 async function save() {
+    const indicator = document.getElementById("save-indicator");
+    if (indicator) indicator.textContent = "Saving...";
     const payload = {
-        enabled: document.getElementById("modbus-enabled").checked,
+        enabled: modbusEnabled,
         controller: document.getElementById("modbus-controller").value.trim(),
         slave_id: parseInt(document.getElementById("modbus-slave-id").value) || 1,
         timeout: document.getElementById("modbus-timeout").value.trim() || "5s",
         registers,
     };
     await fetchJSON("/api/modbus/config", { method: "POST", body: JSON.stringify(payload) });
-    updateConfigStatus();
+    updateConfigStatus(true);
+    if (indicator) {
+        indicator.textContent = "Saved";
+        setTimeout(() => { indicator.textContent = ""; }, 2000);
+    }
 }
 
 // ── Test connection ───────────────────────────────────────────────────────────
@@ -152,6 +176,7 @@ async function testConnection() {
     const resultEl = document.getElementById("test-result");
     setLoading(btn, true);
     resultEl.style.display = "none";
+    resultEl.className = "test-result";
 
     const payload = {
         controller: document.getElementById("modbus-controller").value.trim(),
@@ -167,13 +192,11 @@ async function testConnection() {
     resultEl.style.display = "";
 
     if (res.ok) {
-        resultEl.innerHTML = `<div class="alert alert-success py-2 mb-0">
-            <i class="bi bi-check-circle"></i> ${res.detail}
-        </div>`;
+        resultEl.className = "test-result success";
+        resultEl.textContent = res.detail;
     } else {
-        resultEl.innerHTML = `<div class="alert alert-danger py-2 mb-0">
-            <i class="bi bi-x-circle"></i> ${res.error}
-        </div>`;
+        resultEl.className = "test-result error";
+        resultEl.textContent = res.error;
     }
 }
 
@@ -183,7 +206,7 @@ async function fillDemo() {
     document.getElementById("modbus-controller").value = "modbus-demo-server:502";
     document.getElementById("modbus-slave-id").value = "1";
     document.getElementById("modbus-timeout").value = "5s";
-    document.getElementById("modbus-enabled").checked = true;
+    modbusEnabled = true;
 
     // Add demo registers if table is empty
     if (registers.length === 0) {
@@ -197,7 +220,9 @@ async function fillDemo() {
         renderTable();
     }
     await save();
-    showAlert("Demo settings applied", "success");
+    showAlert("Demo settings applied and saved.", "success");
+    // Reload to update the Disable/Enable button state
+    window.location.reload();
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

@@ -11,6 +11,7 @@
 ###############################################################################
 #                            INPUT PLUGINS                                     #
 ###############################################################################
+{%- if opcua.get('enabled', true) %}
 
 [[inputs.opcua]]
   name = "opcua"
@@ -66,6 +67,7 @@
 {%- endif %}
 {% endfor %}
 {%- endif %}
+{%- endif %}
 {%- if modbus.enabled and modbus.registers %}
 
 [[inputs.modbus]]
@@ -91,7 +93,7 @@
 # Internal metrics for self-monitoring
 [[inputs.internal]]
   collect_memstats = true
-{%- if publishing.mode == "grouped" %}
+{%- if publishing.mode == "grouped" and opcua.get('enabled', true) %}
 
 ###############################################################################
 #                            AGGREGATORS                                       #
@@ -125,7 +127,9 @@
   tls_cert = "{{ mqtt.tls_cert }}"
   tls_key = "{{ mqtt.tls_key }}"
 {%- endif %}
-  namepass = [{% if modbus.enabled and modbus.registers %}"opcua", "modbus"{% else %}"opcua"{% endif %}]
+  {%- set opcua_on = opcua.get('enabled', true) %}
+  {%- set modbus_on = modbus.enabled and modbus.registers %}
+  namepass = [{% if opcua_on and modbus_on %}"opcua", "modbus"{% elif modbus_on %}"modbus"{% else %}"opcua"{% endif %}]
 {%- endif %}
 
 # File output for internal metrics (read by gateway dashboard)

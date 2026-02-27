@@ -47,8 +47,10 @@ def create_app():
         from app.services import config_store as cs
 
         cfg = cs.load()
+        opcua_cfg = cfg.get("opcua", {})
         return {
-            "opcua_ready": len(cfg.get("nodes", [])) > 0,
+            "opcua_ready": opcua_cfg.get("enabled", True)
+            and len(cfg.get("nodes", [])) > 0,
             "modbus_ready": cfg.get("modbus", {}).get("enabled", False)
             and len(cfg.get("modbus", {}).get("registers", [])) > 0,
         }

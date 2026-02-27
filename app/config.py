@@ -1,5 +1,6 @@
 DEFAULT_CONFIG = {
     "opcua": {
+        "enabled": True,
         "endpoint": "opc.tcp://opcua-demo-server:4840/freeopcua/server/",
         "auth_method": "Anonymous",
         "username": "",

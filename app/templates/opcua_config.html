@@ -103,6 +103,19 @@
                     <i class="bi bi-plug"></i> Test Connection
                 </button>
                 <div id="test-result" class="test-result"></div>
+                <hr class="my-3">
+                <p class="text-secondary" style="font-size: 0.8rem; margin-bottom: 0.75rem;">
+                    Disable OPC UA to exclude it from the Telegraf pipeline without losing your configuration.
+                </p>
+                {% if config.enabled is sameas false %}
+                <button class="btn btn-outline-success w-100" id="btn-toggle-opcua" data-enabled="false">
+                    <i class="bi bi-play-circle"></i> Enable OPC UA
+                </button>
+                {% else %}
+                <button class="btn btn-outline-danger w-100" id="btn-toggle-opcua" data-enabled="true">
+                    <i class="bi bi-pause-circle"></i> Disable OPC UA
+                </button>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -175,6 +188,21 @@ document.addEventListener("DOMContentLoaded", () => {
         toggleSections();
         autoSave();
         showAlert("Demo server settings applied and saved.", "success");
+    });
+
+    // Disable / Enable OPC UA
+    document.getElementById("btn-toggle-opcua").addEventListener("click", async () => {
+        const btn = document.getElementById("btn-toggle-opcua");
+        const currentlyEnabled = btn.dataset.enabled === "true";
+        setLoading(btn, true);
+        const data = await fetchJSON("/api/opcua/config", {
+            method: "POST",
+            body: { enabled: !currentlyEnabled },
+        });
+        if (data.ok) {
+            window.location.reload();
+        }
+        setLoading(btn, false);
     });
 
     // Test connection

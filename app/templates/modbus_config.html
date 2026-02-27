@@ -1,58 +1,79 @@
 {% extends "base.html" %}
 
-{% block page_title %}Modbus TCP Config{% endblock %}
-
-{% block header_actions %}
-<button class="btn btn-sm btn-outline-secondary" id="btn-demo-fill" title="Fill with demo server settings">
-    <i class="bi bi-lightning-charge"></i> Use Demo Server
-</button>
-{% endblock %}
+{% block page_title %}Modbus TCP{% endblock %}
 
 {% block content %}
 
-<!-- Connection Settings -->
-<div class="card mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-ethernet"></i> Connection Settings</span>
-        <div class="d-flex align-items-center gap-2">
-            <div class="form-check form-switch mb-0">
-                <input class="form-check-input" type="checkbox" id="modbus-enabled" {% if config.enabled %}checked{% endif %}>
-                <label class="form-check-label" for="modbus-enabled" style="font-size:0.8rem;">Enable Modbus TCP</label>
+<div class="row g-4">
+    <!-- Left column: Connection Settings -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-ethernet"></i> Connection Settings</span>
+                <button class="btn btn-sm btn-outline-secondary" id="btn-demo-fill" title="Fill with demo server settings">
+                    <i class="bi bi-lightning"></i> Use Demo Server
+                </button>
             </div>
-            <button class="btn btn-sm btn-outline-primary" id="btn-test-connection">
-                <i class="bi bi-plug"></i> Test
-            </button>
+            <div class="card-body p-3">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Controller <span class="text-muted" style="font-size:0.75rem;">(host:port)</span></label>
+                        <input type="text" class="form-control form-control-sm" id="modbus-controller"
+                            value="{{ config.controller }}" placeholder="192.168.1.100:502">
+                        <div class="form-text">IP address and port of the Modbus TCP device</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Slave ID</label>
+                        <input type="number" class="form-control form-control-sm" id="modbus-slave-id"
+                            value="{{ config.slave_id }}" min="1" max="247">
+                        <div class="form-text">Device address (1–247)</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Timeout</label>
+                        <input type="text" class="form-control form-control-sm" id="modbus-timeout"
+                            value="{{ config.timeout }}" placeholder="5s">
+                        <div class="form-text">Connection timeout (e.g. 5s)</div>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <span id="save-indicator" class="text-secondary" style="font-family: var(--font-mono); font-size: 0.7rem;"></span>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-6">
-                <label class="form-label">Controller <span class="text-muted" style="font-size:0.75rem;">(host:port)</span></label>
-                <input type="text" class="form-control form-control-sm" id="modbus-controller"
-                    value="{{ config.controller }}" placeholder="192.168.1.100:502">
-                <div class="form-text">IP address and port of the Modbus TCP device</div>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Slave ID</label>
-                <input type="number" class="form-control form-control-sm" id="modbus-slave-id"
-                    value="{{ config.slave_id }}" min="1" max="247">
-                <div class="form-text">Device address (1–247)</div>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Timeout</label>
-                <input type="text" class="form-control form-control-sm" id="modbus-timeout"
-                    value="{{ config.timeout }}" placeholder="5s">
-                <div class="form-text">Connection timeout (e.g. 5s)</div>
+
+    <!-- Right column: Connection Test + Disable -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">Connection Test</div>
+            <div class="card-body p-3">
+                <p class="text-secondary" style="font-size: 0.8rem;">
+                    Test the Modbus TCP connection before configuring registers or applying configuration.
+                </p>
+                <button class="btn btn-outline-secondary w-100" id="btn-test-connection">
+                    <i class="bi bi-plug"></i> Test Connection
+                </button>
+                <div id="test-result" class="test-result"></div>
+                <hr class="my-3">
+                <p class="text-secondary" style="font-size: 0.8rem; margin-bottom: 0.75rem;">
+                    Disable Modbus TCP to exclude it from the Telegraf pipeline without losing your configuration.
+                </p>
+                {% if config.enabled is sameas false %}
+                <button class="btn btn-outline-success w-100" id="btn-toggle-modbus" data-enabled="false">
+                    <i class="bi bi-play-circle"></i> Enable Modbus TCP
+                </button>
+                {% else %}
+                <button class="btn btn-outline-danger w-100" id="btn-toggle-modbus" data-enabled="true">
+                    <i class="bi bi-pause-circle"></i> Disable Modbus TCP
+                </button>
+                {% endif %}
             </div>
         </div>
-
-        <!-- Test result -->
-        <div id="test-result" class="mt-3" style="display:none;"></div>
     </div>
 </div>
 
 <!-- Register Map -->
-<div class="card mb-4">
+<div class="card mt-4 mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
         <span><i class="bi bi-table"></i> Register Map</span>
         <button class="btn btn-sm btn-outline-primary" id="btn-add-register">
