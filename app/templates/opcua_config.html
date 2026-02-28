@@ -8,9 +8,16 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span>Connection Settings</span>
-                <button class="btn btn-sm btn-outline-secondary" id="btn-use-demo" title="Auto-fill with built-in demo server">
-                    <i class="bi bi-lightning"></i> Use Demo Server
-                </button>
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-info-circle text-muted hint-icon"
+                       data-bs-toggle="tooltip"
+                       title="Disabling does not delete your configuration. Changes take effect after Deploy config."></i>
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" id="opcua-enabled-toggle" role="switch"
+                               {% if config.enabled is not sameas false %}checked{% endif %}>
+                        <label class="form-check-label" for="opcua-enabled-toggle" style="font-size:0.8rem;">Active</label>
+                    </div>
+                </div>
             </div>
             <div class="card-body p-3">
                 <div class="mb-3">
@@ -94,28 +101,24 @@
 
     <div class="col-lg-4">
         <div class="card">
-            <div class="card-header">Connection Test</div>
+            <div class="card-header">Actions</div>
             <div class="card-body p-3">
-                <p class="text-secondary" style="font-size: 0.8rem;">
-                    Test the OPC UA connection before browsing nodes or applying configuration.
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-secondary" id="btn-use-demo">
+                        <i class="bi bi-lightning"></i> Use Demo Server
+                    </button>
+                    <button class="btn btn-outline-secondary" id="btn-test">
+                        <i class="bi bi-plug"></i> Test Connection
+                    </button>
+                    <div id="test-result" class="test-result"></div>
+                    <hr class="my-0">
+                    <button class="btn btn-outline-danger" id="btn-clear-opcua">
+                        <i class="bi bi-trash"></i> Clear configuration
+                    </button>
+                </div>
+                <p class="text-muted mt-2 mb-0" style="font-size:0.75rem;">
+                    Clears connection settings and all selected nodes. MQTT output is not affected.
                 </p>
-                <button class="btn btn-outline-secondary w-100" id="btn-test">
-                    <i class="bi bi-plug"></i> Test Connection
-                </button>
-                <div id="test-result" class="test-result"></div>
-                <hr class="my-3">
-                <p class="text-secondary" style="font-size: 0.8rem; margin-bottom: 0.75rem;">
-                    Disable OPC UA to exclude it from the Telegraf pipeline without losing your configuration.
-                </p>
-                {% if config.enabled is sameas false %}
-                <button class="btn btn-outline-success w-100" id="btn-toggle-opcua" data-enabled="false">
-                    <i class="bi bi-play-circle"></i> Enable OPC UA
-                </button>
-                {% else %}
-                <button class="btn btn-outline-danger w-100" id="btn-toggle-opcua" data-enabled="true">
-                    <i class="bi bi-pause-circle"></i> Disable OPC UA
-                </button>
-                {% endif %}
             </div>
         </div>
     </div>
@@ -125,6 +128,8 @@
 {% block scripts %}
 <script>
 document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+
     const authSelect = document.getElementById("auth_method");
     const userSection = document.getElementById("username-section");
     const certSection = document.getElementById("certificate-section");
@@ -151,7 +156,6 @@ document.addEventListener("DOMContentLoaded", () => {
         };
     }
 
-    // Auto-save with debounce
     async function autoSave() {
         saveIndicator.textContent = "Saving...";
         const data = await fetchJSON("/api/opcua/config", { method: "POST", body: getFormData() });
@@ -168,12 +172,17 @@ document.addEventListener("DOMContentLoaded", () => {
         saveTimeout = setTimeout(autoSave, 800);
     }
 
-    // Attach auto-save to all form fields
     document.querySelectorAll("#endpoint, #auth_method, #security_policy, #security_mode, #username, #password, #connect_timeout, #request_timeout")
         .forEach(el => {
             el.addEventListener("change", scheduleAutoSave);
             el.addEventListener("input", scheduleAutoSave);
         });
+
+    // Active/Inactive toggle
+    document.getElementById("opcua-enabled-toggle").addEventListener("change", async (e) => {
+        const res = await fetchJSON("/api/opcua/config", { method: "POST", body: { enabled: e.target.checked } });
+        if (res.ok) updateConfigStatus(true);
+    });
 
     // Demo server quick-fill + immediate save
     document.getElementById("btn-use-demo").addEventListener("click", () => {
@@ -188,21 +197,6 @@ document.addEventListener("DOMContentLoaded", () => {
         toggleSections();
         autoSave();
         showAlert("Demo server settings applied and saved.", "success");
-    });
-
-    // Disable / Enable OPC UA
-    document.getElementById("btn-toggle-opcua").addEventListener("click", async () => {
-        const btn = document.getElementById("btn-toggle-opcua");
-        const currentlyEnabled = btn.dataset.enabled === "true";
-        setLoading(btn, true);
-        const data = await fetchJSON("/api/opcua/config", {
-            method: "POST",
-            body: { enabled: !currentlyEnabled },
-        });
-        if (data.ok) {
-            window.location.reload();
-        }
-        setLoading(btn, false);
     });
 
     // Test connection
@@ -223,6 +217,19 @@ document.addEventListener("DOMContentLoaded", () => {
             result.className = "test-result error";
             result.textContent = "Connection failed: " + data.error;
         }
+    });
+
+    // Clear configuration
+    document.getElementById("btn-clear-opcua").addEventListener("click", async () => {
+        if (!confirm("This will clear the OPC UA connection settings and all selected nodes.\n\nProceed?")) return;
+        await fetchJSON("/api/opcua/config", { method: "POST", body: {
+            endpoint: "", auth_method: "Anonymous", username: "", password: "",
+            security_policy: "None", security_mode: "None",
+            connect_timeout: "10s", request_timeout: "5s",
+            certificate: "", private_key: "", enabled: true,
+        }});
+        await fetchJSON("/api/opcua/nodes", { method: "POST", body: [] });
+        window.location.reload();
     });
 });
 </script>

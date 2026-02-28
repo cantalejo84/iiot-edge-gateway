@@ -970,37 +970,60 @@ body {
     align-items: stretch;
 }
 
-/* OPC UA node — bigger */
+/* OPC UA node */
 .pf-node-opcua {
     background: var(--sidebar-bg);
     border: 1px solid var(--border-color);
-    border-radius: 10px;
-    padding: 1rem 1.5rem;
-    min-width: 180px;
+    border-radius: 8px;
+    padding: 0.75rem 1.25rem;
+    min-width: 160px;
     position: relative;
     overflow: visible;
 }
 
-.pf-node-opcua .pf-node-icon { font-size: 1.2rem; color: var(--accent); }
-.pf-node-opcua .pf-node-value { font-size: 2.4rem; line-height: 1; }
+.pf-node-opcua .pf-node-icon { font-size: 1.1rem; color: var(--accent); }
+.pf-node-opcua .pf-node-value { font-size: 2rem; line-height: 1; }
 
-/* Modbus node — same size as OPC UA */
+/* Dual mode: compact nodes */
+.pipeline-dual .pf-node-opcua,
+.pipeline-dual .pf-node-modbus {
+    padding: 0.5rem 0.9rem;
+    min-width: 140px;
+    border-radius: 6px;
+}
+.pipeline-dual .pf-node-opcua .pf-node-value,
+.pipeline-dual .pf-node-modbus .pf-node-value { font-size: 1.5rem; }
+
+/* Horizontal exit lines from each input node in dual mode */
+.pipeline-dual .pf-node-opcua::after,
+.pipeline-dual .pf-node-modbus::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: -14px;
+    width: 14px;
+    height: 2px;
+    background: var(--border-color);
+    transform: translateY(-50%);
+}
+
+/* Modbus node */
 .pf-node-modbus {
     background: var(--sidebar-bg);
     border: 1px solid var(--border-color);
-    border-radius: 10px;
-    padding: 1rem 1.5rem;
-    min-width: 180px;
+    border-radius: 8px;
+    padding: 0.75rem 1.25rem;
+    min-width: 160px;
     position: relative;
     overflow: visible;
 }
 
-.pf-node-modbus .pf-node-icon { font-size: 1.2rem; color: #b8860b; }
-.pf-node-modbus .pf-node-value { font-size: 2.4rem; line-height: 1; }
+.pf-node-modbus .pf-node-icon { font-size: 1.1rem; color: #b8860b; }
+.pf-node-modbus .pf-node-value { font-size: 2rem; line-height: 1; }
 
 [data-theme="keepler"] .pf-node-modbus { background: var(--card-bg); }
 
-/* Fork connector — used when both inputs are active */
+/* Fork connector — vertical merge line at left edge */
 .pf-connector-fork {
     position: relative;
 }
@@ -1008,31 +1031,11 @@ body {
 .pf-connector-fork::before {
     content: "";
     position: absolute;
-    left: 50%;
+    left: 0;
     top: 0;
     bottom: 0;
     width: 2px;
     background: var(--border-color);
-    transform: translateX(-50%);
-}
-
-/* Pulse ring on OPC UA node */
-.pf-pulse-ring {
-    position: absolute;
-    inset: -6px;
-    border-radius: 14px;
-    border: 2px solid var(--accent);
-    opacity: 0;
-    pointer-events: none;
-}
-
-.pipeline-active .pf-pulse-ring {
-    animation: ringPulse 2.2s ease-out infinite;
-}
-
-@keyframes ringPulse {
-    0%   { inset: -4px;  opacity: 0.7; }
-    100% { inset: -18px; opacity: 0; }
 }
 
 /* OPC UA quality row */
@@ -1187,29 +1190,68 @@ body {
 .pipeline-status-badge.badge-stopped { color: var(--danger); }
 .pipeline-status-badge.badge-stopped .pipeline-status-dot { background: var(--danger); }
 
+/* Pipeline metrics section — labeled rows per source */
+.pipeline-metrics-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.pipeline-metrics-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.pipeline-metrics-source {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    flex-shrink: 0;
+    width: 52px;
+    text-align: right;
+    padding-right: 0.5rem;
+    border-right: 2px solid var(--border-color);
+}
+
+.opcua-label  { color: var(--accent); border-color: var(--accent); }
+.modbus-label { color: #b8860b; border-color: #b8860b; }
+.output-label { color: #34d399; border-color: #34d399; }
+
+[data-theme="keepler"] .modbus-label { color: #b8860b; }
+
+.dash-grid-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 0.4rem;
+    flex: 1;
+}
+
 /* Pipeline stats row */
 .pipeline-stat {
     text-align: center;
-    padding: 0.6rem;
+    padding: 0.4rem 0.5rem;
     background: var(--sidebar-bg);
-    border-radius: 6px;
+    border-radius: 5px;
     border: 1px solid var(--border-color);
 }
 
 .pipeline-stat-value {
     font-family: var(--font-mono);
-    font-size: 1rem;
+    font-size: 0.9rem;
     font-weight: 700;
     color: var(--text-primary);
 }
 
 .pipeline-stat-label {
     font-family: var(--font-mono);
-    font-size: 0.6rem;
+    font-size: 0.58rem;
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    margin-top: 0.15rem;
+    margin-top: 0.1rem;
 }
 
 /* ── Gateway Info meta row ──────────────────────────────────────── */
@@ -1374,6 +1416,21 @@ body {
     flex-shrink: 0;
     white-space: nowrap;
 }
+
+.log-copy-btn {
+    background: none;
+    border: none;
+    padding: 0 0.2rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+    line-height: 1;
+}
+.log-entry:hover .log-copy-btn { opacity: 1; }
+.log-copy-btn:hover { color: var(--accent); }
 
 .log-detail {
     font-family: var(--font-mono);

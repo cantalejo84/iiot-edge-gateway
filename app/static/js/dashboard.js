@@ -99,9 +99,25 @@ async function refreshTelegrafMetrics() {
         }
         setText("p-buffer-text", `${formatNum(d.mqtt_buffer_size)} / ${formatNum(d.mqtt_buffer_limit)}`);
 
-        // Stats
+        // OPC UA scan stat
         setText("p-scan-time", `${d.opcua_scan_time_ms} ms`);
 
+        // OPC UA read quality (pipeline node chips)
+        setText("q-read-success", formatNum(d.opcua_read_success));
+        setText("q-read-error", formatNum(d.opcua_read_error));
+        const total = d.opcua_read_success + d.opcua_read_error;
+        const rate = total > 0 ? (d.opcua_read_success / total) * 100 : 0;
+        setText("q-success-rate", total > 0 ? `${rate.toFixed(1)}%` : "--");
+
+        // OPC UA metrics row
+        setText("q2-read-success", formatNum(d.opcua_read_success));
+        setText("q2-read-error", formatNum(d.opcua_read_error));
+        setText("q2-success-rate", total > 0 ? `${rate.toFixed(1)}%` : "--");
+
+        // Modbus metrics row
+        setText("p-modbus-errors-stat", formatNum(d.modbus_errors));
+
+        // Output metrics row
         const droppedEl = document.getElementById("p-dropped");
         if (droppedEl) {
             droppedEl.textContent = formatNum(d.mqtt_dropped);
@@ -110,9 +126,8 @@ async function refreshTelegrafMetrics() {
 
         const errorsEl = document.getElementById("p-errors");
         if (errorsEl) {
-            const inputErrors = d.opcua_errors + d.modbus_errors;
-            errorsEl.textContent = `${inputErrors} / ${d.mqtt_errors}`;
-            errorsEl.style.color = (inputErrors + d.mqtt_errors) > 0 ? "var(--danger)" : "";
+            errorsEl.textContent = formatNum(d.mqtt_errors);
+            errorsEl.style.color = d.mqtt_errors > 0 ? "var(--danger)" : "";
         }
 
         const lossEl = document.getElementById("p-loss");
@@ -127,22 +142,6 @@ async function refreshTelegrafMetrics() {
                 lossEl.style.color = "";
             }
         }
-
-        // OPC UA read quality (pipeline node chips)
-        setText("q-read-success", formatNum(d.opcua_read_success));
-        setText("q-read-error", formatNum(d.opcua_read_error));
-        const total = d.opcua_read_success + d.opcua_read_error;
-        const rate = total > 0 ? (d.opcua_read_success / total) * 100 : 0;
-        setText("q-success-rate", total > 0 ? `${rate.toFixed(1)}%` : "--");
-        setWidth("q-success-bar", `${rate}%`);
-        setWidth("q-error-bar", `${total > 0 ? 100 - rate : 0}%`);
-
-        // OPC UA read quality (stats row below pipeline)
-        setText("q2-read-success", formatNum(d.opcua_read_success));
-        setText("q2-read-error", formatNum(d.opcua_read_error));
-        setText("q2-success-rate", total > 0 ? `${rate.toFixed(1)}%` : "--");
-        setWidth("q2-success-bar", `${rate}%`);
-        setWidth("q2-error-bar", `${total > 0 ? 100 - rate : 0}%`);
 
         if (d.last_updated) {
             setText("last-updated", new Date(d.last_updated * 1000).toLocaleTimeString());

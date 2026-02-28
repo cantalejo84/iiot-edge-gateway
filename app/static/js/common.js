@@ -51,6 +51,9 @@ function lockNav() {
         el.setAttribute("href", "#");
         el.classList.add("nav-locked");
     });
+    document.querySelectorAll("#btn-agent-play, #btn-agent-stop").forEach(btn => {
+        btn.disabled = true;
+    });
 }
 
 function unlockNav() {
@@ -60,6 +63,9 @@ function unlockNav() {
             delete el.dataset.hrefBackup;
         }
         el.classList.remove("nav-locked");
+    });
+    document.querySelectorAll("#btn-agent-play, #btn-agent-stop").forEach(btn => {
+        btn.disabled = false;
     });
 }
 
@@ -169,10 +175,22 @@ function renderLogs(events) {
                 <span class="log-comp-badge" style="background:${compClr}22;color:${compClr};border-color:${compClr}44;">${e.component.toUpperCase()}</span>
                 <span class="log-message">${escapeLogHtml(e.message)}</span>
                 <span class="log-time">${timestamp}</span>
+                <button class="log-copy-btn" title="Copy to clipboard" data-copy="${escapeLogHtml(e.component.toUpperCase() + ' | ' + timestamp + ' | ' + e.message + (e.detail ? ' | ' + e.detail : ''))}">
+                    <i class="bi bi-clipboard"></i>
+                </button>
             </div>
             ${detail}
         </div>`;
     }).join("");
+
+    list.querySelectorAll(".log-copy-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            navigator.clipboard.writeText(btn.dataset.copy || "").catch(() => {});
+            const icon = btn.querySelector("i");
+            if (icon) { icon.className = "bi bi-clipboard-check"; }
+            setTimeout(() => { if (icon) icon.className = "bi bi-clipboard"; }, 1500);
+        });
+    });
 
 }
 

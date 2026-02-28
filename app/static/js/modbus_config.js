@@ -6,7 +6,6 @@ const BYTE_ORDERS = ["ABCD", "DCBA", "BADC", "CDAB"];
 
 let saveTimer = null;
 let registers = [];
-let modbusEnabled = true;
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
@@ -17,32 +16,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const cfg = await fetchJSON("/api/modbus/config");
     registers = cfg.registers || [];
-    modbusEnabled = cfg.enabled !== false;
     renderTable();
 
-    // Wire auto-save on connection fields
+    // Wire auto-save on connection fields and toggle
     ["modbus-controller", "modbus-slave-id", "modbus-timeout"].forEach(id => {
         document.getElementById(id).addEventListener("input", scheduleSave);
     });
+    document.getElementById("modbus-enabled-toggle").addEventListener("change", scheduleSave);
 
     document.getElementById("btn-add-register").addEventListener("click", addRegister);
     document.getElementById("btn-test-connection").addEventListener("click", testConnection);
     document.getElementById("btn-demo-fill").addEventListener("click", fillDemo);
-
-    // Disable / Enable Modbus TCP
-    document.getElementById("btn-toggle-modbus").addEventListener("click", async () => {
-        const btn = document.getElementById("btn-toggle-modbus");
-        const currentlyEnabled = btn.dataset.enabled === "true";
-        setLoading(btn, true);
-        const data = await fetchJSON("/api/modbus/config", {
-            method: "POST",
-            body: JSON.stringify({ enabled: !currentlyEnabled }),
-        });
-        if (data.ok) {
-            window.location.reload();
-        }
-        setLoading(btn, false);
-    });
+    document.getElementById("btn-clear-modbus").addEventListener("click", clearConfig);
 });
 
 // ── Register table ────────────────────────────────────────────────────────────
@@ -97,7 +82,6 @@ function renderTable() {
         </tr>
     `).join("");
 
-    // Wire row events
     tbody.querySelectorAll("input, select").forEach(el => {
         el.addEventListener("change", onRowChange);
         el.addEventListener("input", onRowChange);
@@ -134,11 +118,8 @@ function addRegister() {
         byte_order: "ABCD",
     });
     renderTable();
-    // Focus the name field of the new row
     const rows = document.querySelectorAll("#register-tbody tr");
-    if (rows.length > 0) {
-        rows[rows.length - 1].querySelector(".reg-name").focus();
-    }
+    if (rows.length > 0) rows[rows.length - 1].querySelector(".reg-name").focus();
     scheduleSave();
 }
 
@@ -155,7 +136,7 @@ async function save() {
     const indicator = document.getElementById("save-indicator");
     if (indicator) indicator.textContent = "Saving...";
     const payload = {
-        enabled: modbusEnabled,
+        enabled: document.getElementById("modbus-enabled-toggle").checked,
         controller: document.getElementById("modbus-controller").value.trim(),
         slave_id: parseInt(document.getElementById("modbus-slave-id").value) || 1,
         timeout: document.getElementById("modbus-timeout").value.trim() || "5s",
@@ -206,9 +187,8 @@ async function fillDemo() {
     document.getElementById("modbus-controller").value = "modbus-demo-server:502";
     document.getElementById("modbus-slave-id").value = "1";
     document.getElementById("modbus-timeout").value = "5s";
-    modbusEnabled = true;
+    document.getElementById("modbus-enabled-toggle").checked = true;
 
-    // Add demo registers if table is empty
     if (registers.length === 0) {
         registers = [
             { name: "temperature", register_type: "holding", address: 0, data_type: "FLOAT32", byte_order: "ABCD" },
@@ -221,8 +201,20 @@ async function fillDemo() {
     }
     await save();
     showAlert("Demo settings applied and saved.", "success");
-    // Reload to update the Disable/Enable button state
-    window.location.reload();
+}
+
+// ── Clear configuration ───────────────────────────────────────────────────────
+
+async function clearConfig() {
+    if (!confirm("This will clear the Modbus connection settings and all configured registers.\n\nProceed?")) return;
+    registers = [];
+    renderTable();
+    document.getElementById("modbus-controller").value = "";
+    document.getElementById("modbus-slave-id").value = "1";
+    document.getElementById("modbus-timeout").value = "5s";
+    document.getElementById("modbus-enabled-toggle").checked = false;
+    await save();
+    showAlert("Modbus configuration cleared.", "info");
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

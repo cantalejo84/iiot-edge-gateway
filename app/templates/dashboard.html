@@ -42,12 +42,11 @@
             <div class="pf-inputs-col">
 
                 {% if has_opcua or not has_modbus %}
-                <!-- OPC UA node -->
                 <div class="pf-node pf-node-opcua" id="pf-opcua">
-                    <div class="pf-pulse-ring"></div>
                     <div class="pf-node-icon"><i class="bi bi-cpu"></i></div>
                     <div class="pf-node-label">OPC UA Read</div>
                     <div class="pf-node-value" id="p-opcua-read">--</div>
+                    {% if has_opcua or not has_modbus %}
                     <div class="pf-quality-row">
                         <span class="pf-quality-chip pf-q-ok" data-bs-toggle="tooltip" title="Successful node reads">
                             <i class="bi bi-check-lg"></i> <span id="q-read-success">--</span>
@@ -58,18 +57,13 @@
                         <span class="pf-quality-chip pf-q-rate" data-bs-toggle="tooltip" title="Read success rate">
                             <span id="q-success-rate">--</span>
                         </span>
-                        <div class="pf-quality-bar">
-                            <div class="pf-quality-bar-fill" id="q-success-bar"></div>
-                            <div class="pf-quality-bar-err" id="q-error-bar"></div>
-                        </div>
                     </div>
+                    {% endif %}
                 </div>
                 {% endif %}
 
                 {% if has_modbus %}
-                <!-- Modbus node -->
                 <div class="pf-node pf-node-modbus" id="pf-modbus">
-                    <div class="pf-pulse-ring"></div>
                     <div class="pf-node-icon"><i class="bi bi-ethernet"></i></div>
                     <div class="pf-node-label">Modbus Read</div>
                     <div class="pf-node-value" id="p-modbus-read">--</div>
@@ -86,7 +80,7 @@
 
             </div>
 
-            <!-- Connector 1 (fork when dual) -->
+            <!-- Connector (fork when dual) -->
             <div class="pf-connector {% if dual %}pf-connector-fork{% endif %}">
                 <div class="pf-connector-line"></div>
                 <div class="pf-connector-x"><i class="bi bi-x"></i></div>
@@ -121,69 +115,83 @@
             </div>
         </div>
 
-        <!-- Stats row -->
-        <div class="dash-grid dash-grid-4 mt-3">
-            {% if has_opcua or not has_modbus %}
-            <div class="pipeline-stat">
-                <div class="pipeline-stat-value" id="p-scan-time">--</div>
-                <div class="pipeline-stat-label">
-                    OPC UA Scan
-                    <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Time Telegraf takes to read all OPC UA nodes per cycle."></i>
-                </div>
-            </div>
-            {% endif %}
-            {% if has_modbus %}
-            <div class="pipeline-stat">
-                <div class="pipeline-stat-value" id="p-modbus-scan-stat">--</div>
-                <div class="pipeline-stat-label">
-                    Modbus Scan
-                    <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Time Telegraf takes to poll all Modbus registers per cycle."></i>
-                </div>
-            </div>
-            {% endif %}
-            <div class="pipeline-stat">
-                <div class="pipeline-stat-value" id="p-dropped">--</div>
-                <div class="pipeline-stat-label">
-                    Dropped
-                    <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Messages discarded because the MQTT output buffer was full."></i>
-                </div>
-            </div>
-            <div class="pipeline-stat">
-                <div class="pipeline-stat-value" id="p-errors">--</div>
-                <div class="pipeline-stat-label">
-                    Errors (In / MQTT)
-                    <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Input read errors (OPC UA + Modbus combined) / MQTT write errors."></i>
-                </div>
-            </div>
-            <div class="pipeline-stat">
-                <div class="pipeline-stat-value" id="p-loss">--</div>
-                <div class="pipeline-stat-label">
-                    Loss Rate
-                    <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Percentage of collected metrics that did not reach MQTT. Should be 0%."></i>
-                </div>
-            </div>
-        </div>
+        <!-- Metrics rows: per-source + output -->
+        <div class="pipeline-metrics-section mt-3">
 
-        <!-- Data quality (OPC UA only) -->
-        {% if has_opcua or not has_modbus %}
-        <div class="dash-grid dash-grid-4 mt-2">
-            <div class="quality-stat">
-                <div class="quality-stat-value text-success" id="q2-read-success">--</div>
-                <div class="quality-stat-label">OPC UA OK reads</div>
-            </div>
-            <div class="quality-stat">
-                <div class="quality-stat-value text-danger" id="q2-read-error">--</div>
-                <div class="quality-stat-label">OPC UA read errors</div>
-            </div>
-            <div class="quality-stat col-span-2">
-                <div class="pf-quality-bar" style="height:6px;border-radius:3px;">
-                    <div class="pf-quality-bar-fill" id="q2-success-bar"></div>
-                    <div class="pf-quality-bar-err" id="q2-error-bar"></div>
+            {% if has_opcua or not has_modbus %}
+            <div class="pipeline-metrics-row">
+                <span class="pipeline-metrics-source opcua-label">OPC UA</span>
+                <div class="dash-grid dash-grid-metrics">
+                    <div class="pipeline-stat">
+                        <div class="pipeline-stat-value" id="p-scan-time">--</div>
+                        <div class="pipeline-stat-label">
+                            Scan Time
+                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Time to read all OPC UA nodes per cycle."></i>
+                        </div>
+                    </div>
+                    <div class="pipeline-stat">
+                        <div class="pipeline-stat-value text-success" id="q2-read-success">--</div>
+                        <div class="pipeline-stat-label">OK Reads</div>
+                    </div>
+                    <div class="pipeline-stat">
+                        <div class="pipeline-stat-value text-danger" id="q2-read-error">--</div>
+                        <div class="pipeline-stat-label">Err Reads</div>
+                    </div>
+                    <div class="pipeline-stat">
+                        <div class="pipeline-stat-value" id="q2-success-rate">--</div>
+                        <div class="pipeline-stat-label">Success Rate</div>
+                    </div>
                 </div>
-                <div class="quality-stat-label mt-1">Success rate: <strong id="q2-success-rate">--</strong></div>
             </div>
+            {% endif %}
+
+            {% if has_modbus %}
+            <div class="pipeline-metrics-row">
+                <span class="pipeline-metrics-source modbus-label">Modbus</span>
+                <div class="dash-grid dash-grid-metrics">
+                    <div class="pipeline-stat">
+                        <div class="pipeline-stat-value" id="p-modbus-scan-stat">--</div>
+                        <div class="pipeline-stat-label">
+                            Scan Time
+                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Time to poll all Modbus registers per cycle."></i>
+                        </div>
+                    </div>
+                    <div class="pipeline-stat">
+                        <div class="pipeline-stat-value text-danger" id="p-modbus-errors-stat">--</div>
+                        <div class="pipeline-stat-label">Errors</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="pipeline-metrics-row">
+                <span class="pipeline-metrics-source output-label">Output</span>
+                <div class="dash-grid dash-grid-metrics">
+                    <div class="pipeline-stat">
+                        <div class="pipeline-stat-value" id="p-dropped">--</div>
+                        <div class="pipeline-stat-label">
+                            Dropped
+                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Messages discarded because the MQTT output buffer was full."></i>
+                        </div>
+                    </div>
+                    <div class="pipeline-stat">
+                        <div class="pipeline-stat-value" id="p-errors">--</div>
+                        <div class="pipeline-stat-label">
+                            MQTT Errors
+                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="MQTT write errors."></i>
+                        </div>
+                    </div>
+                    <div class="pipeline-stat">
+                        <div class="pipeline-stat-value" id="p-loss">--</div>
+                        <div class="pipeline-stat-label">
+                            Loss Rate
+                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Percentage of collected metrics that did not reach MQTT. Should be 0%."></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
-        {% endif %}
 
     </div>
 </div>
