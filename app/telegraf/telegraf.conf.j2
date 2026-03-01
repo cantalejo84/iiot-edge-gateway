@@ -16,19 +16,19 @@
 
 [[inputs.opcua]]
   name = "opcua"
-  endpoint = "{{ opcua.endpoint }}"
-  connect_timeout = "{{ opcua.connect_timeout }}"
-  request_timeout = "{{ opcua.request_timeout }}"
-  security_policy = "{{ opcua.security_policy }}"
-  security_mode = "{{ opcua.security_mode }}"
-  auth_method = "{{ opcua.auth_method }}"
+  endpoint = "{{ opcua.endpoint | toml_dq }}"
+  connect_timeout = "{{ opcua.connect_timeout | toml_dq }}"
+  request_timeout = "{{ opcua.request_timeout | toml_dq }}"
+  security_policy = "{{ opcua.security_policy | toml_dq }}"
+  security_mode = "{{ opcua.security_mode | toml_dq }}"
+  auth_method = "{{ opcua.auth_method | toml_dq }}"
 {%- if opcua.auth_method == "UserName" %}
-  username = "{{ opcua.username }}"
-  password = "{{ opcua.password }}"
+  username = "{{ opcua.username | toml_dq }}"
+  password = "{{ opcua.password | toml_dq }}"
 {%- endif %}
 {%- if opcua.auth_method == "Certificate" and opcua.certificate %}
-  certificate = "{{ opcua.certificate }}"
-  private_key = "{{ opcua.private_key }}"
+  certificate = "{{ opcua.certificate | toml_dq }}"
+  private_key = "{{ opcua.private_key | toml_dq }}"
 {%- endif %}
 {%- if publishing.mode == "grouped" %}
   # Grouped mode: id tag excluded so the merge processor can combine all nodes
@@ -41,26 +41,26 @@
   # Message format: Grouped — nodes share sampling interval, merge processor
   # combines them into a single MQTT message per cycle
   [[inputs.opcua.group]]
-    sampling_interval = "{{ publishing.group_interval }}"
+    sampling_interval = "{{ publishing.group_interval | toml_dq }}"
 {%- for node in nodes %}
     [[inputs.opcua.group.nodes]]
-      name = "{{ node.name }}"
-      namespace = "{{ node.namespace }}"
-      identifier_type = "{{ node.identifier_type }}"
-      identifier = "{{ node.identifier }}"
+      name = "{{ node.name | toml_dq }}"
+      namespace = "{{ node.namespace | toml_dq }}"
+      identifier_type = "{{ node.identifier_type | toml_dq }}"
+      identifier = "{{ node.identifier | toml_dq }}"
 {%- endfor %}
 {%- else %}
 
   # Message format: Individual — one MQTT message per node per cycle
 {% for node in nodes %}
   [[inputs.opcua.nodes]]
-    name = "{{ node.name }}"
-    namespace = "{{ node.namespace }}"
-    identifier_type = "{{ node.identifier_type }}"
-    identifier = "{{ node.identifier }}"
+    name = "{{ node.name | toml_dq }}"
+    namespace = "{{ node.namespace | toml_dq }}"
+    identifier_type = "{{ node.identifier_type | toml_dq }}"
+    identifier = "{{ node.identifier | toml_dq }}"
 {%- if node.get("sampling_mode") == "subscription" %}
     [inputs.opcua.nodes.monitoring_params]
-      sampling_interval = "{{ node.get('interval', '1s') }}"
+      sampling_interval = "{{ node.get('interval', '1s') | toml_dq }}"
 {%- if node.get("deadband_type", "None") != "None" %}
       deadband_type = "{{ node.deadband_type }}"
       deadband_value = {{ node.deadband_value }}
@@ -98,35 +98,35 @@
 
 [[inputs.modbus]]
   name = "modbus"
-  interval = "{{ modbus.poll_interval or '10s' }}"
-  controller = "{{ ctrl }}"
-  slave_id = {{ modbus.slave_id }}
-  timeout = "{{ modbus.timeout }}"
+  interval = "{{ (modbus.poll_interval or '10s') | toml_dq }}"
+  controller = "{{ ctrl | toml_dq }}"
+  slave_id = {{ modbus.slave_id | int }}
+  timeout = "{{ modbus.timeout | toml_dq }}"
 {%- if holding %}
   holding_registers = [
 {%- for r in holding %}
-    {name = "{{ r.name }}", address = [{{ reg_addrs(r.address, r.data_type) }}], data_type = "{{ norm_dt(r.data_type) }}", byte_order = "{{ r.byte_order }}", scale = 1.0},
+    {name = "{{ r.name | toml_dq }}", address = [{{ reg_addrs(r.address, r.data_type) }}], data_type = "{{ norm_dt(r.data_type) }}", byte_order = "{{ r.byte_order }}", scale = 1.0},
 {%- endfor %}
   ]
 {%- endif %}
 {%- if input_r %}
   input_registers = [
 {%- for r in input_r %}
-    {name = "{{ r.name }}", address = [{{ reg_addrs(r.address, r.data_type) }}], data_type = "{{ norm_dt(r.data_type) }}", byte_order = "{{ r.byte_order }}", scale = 1.0},
+    {name = "{{ r.name | toml_dq }}", address = [{{ reg_addrs(r.address, r.data_type) }}], data_type = "{{ norm_dt(r.data_type) }}", byte_order = "{{ r.byte_order }}", scale = 1.0},
 {%- endfor %}
   ]
 {%- endif %}
 {%- if coil %}
   coil_registers = [
 {%- for r in coil %}
-    {name = "{{ r.name }}", address = [{{ r.address | int }}], data_type = "BOOL", scale = 1.0},
+    {name = "{{ r.name | toml_dq }}", address = [{{ r.address | int }}], data_type = "BOOL", scale = 1.0},
 {%- endfor %}
   ]
 {%- endif %}
 {%- if discrete %}
   discrete_input_registers = [
 {%- for r in discrete %}
-    {name = "{{ r.name }}", address = [{{ r.address | int }}], data_type = "BOOL", scale = 1.0},
+    {name = "{{ r.name | toml_dq }}", address = [{{ r.address | int }}], data_type = "BOOL", scale = 1.0},
 {%- endfor %}
   ]
 {%- endif %}
@@ -143,7 +143,7 @@
 
 # Merge all opcua node metrics into a single message per flush cycle
 [[aggregators.merge]]
-  period = "{{ publishing.group_interval }}"
+  period = "{{ publishing.group_interval | toml_dq }}"
   namepass = ["opcua"]
   drop_original = true
 {%- endif %}
@@ -154,20 +154,20 @@
 {%- if mqtt.endpoint %}
 
 [[outputs.mqtt]]
-  servers = ["{{ mqtt.endpoint }}"]
-  topic = '{{ mqtt.topic_pattern }}'
-  qos = {{ mqtt.qos }}
-  data_format = "{{ mqtt.data_format }}"
+  servers = ["{{ mqtt.endpoint | toml_dq }}"]
+  topic = '{{ mqtt.topic_pattern | toml_sq }}'
+  qos = {{ mqtt.qos | int }}
+  data_format = "{{ mqtt.data_format | toml_dq }}"
 {%- if mqtt.username %}
-  username = "{{ mqtt.username }}"
+  username = "{{ mqtt.username | toml_dq }}"
 {%- endif %}
 {%- if mqtt.password %}
-  password = "{{ mqtt.password }}"
+  password = "{{ mqtt.password | toml_dq }}"
 {%- endif %}
 {%- if mqtt.tls_ca and ('mqtts://' in mqtt.endpoint or 'ssl://' in mqtt.endpoint) %}
-  tls_ca = "{{ mqtt.tls_ca }}"
-  tls_cert = "{{ mqtt.tls_cert }}"
-  tls_key = "{{ mqtt.tls_key }}"
+  tls_ca = "{{ mqtt.tls_ca | toml_dq }}"
+  tls_cert = "{{ mqtt.tls_cert | toml_dq }}"
+  tls_key = "{{ mqtt.tls_key | toml_dq }}"
 {%- endif %}
   {%- set opcua_on = opcua.get('enabled', true) %}
   {%- set modbus_on = modbus.enabled and modbus.registers %}
