@@ -2,17 +2,16 @@
 
 {% block page_title %}Node Selection{% endblock %}
 
-{% block header_actions %}
-<a href="/opcua/browser" class="btn btn-outline-secondary"><i class="bi bi-plus-circle"></i> Add Nodes</a>
-{% endblock %}
-
 {% block content %}
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <span>Selected Nodes (<span id="node-count">0</span>)</span>
-        <button class="btn btn-sm btn-outline-secondary" id="btn-clear-all" title="Remove all">
-            <i class="bi bi-trash"></i> Clear All
-        </button>
+        <div class="d-flex gap-2">
+            <a href="/opcua/browser" class="btn btn-sm btn-outline-primary"><i class="bi bi-plus-circle"></i> Add Nodes</a>
+            <button class="btn btn-sm btn-outline-secondary" id="btn-clear-all" title="Remove all">
+                <i class="bi bi-trash"></i> Clear All
+            </button>
+        </div>
     </div>
     <div class="card-body p-0">
         <div id="nodes-empty" class="text-center text-secondary p-5" style="display: none;">
