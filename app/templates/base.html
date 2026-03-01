@@ -95,8 +95,8 @@
                 </li>
                 <li class="nav-section-label nav-section-system">SYSTEM</li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#" data-action="preview-config">
-                        <i class="bi bi-file-earmark-code"></i> Preview Config
+                    <a class="nav-link {% if request.path == '/configuration' %}active{% endif %}" href="/configuration">
+                        <i class="bi bi-file-earmark-code"></i> Configuration
                     </a>
                 </li>
                 <li class="nav-item">
@@ -163,27 +163,6 @@
 
             {% block content %}{% endblock %}
         </main>
-    </div>
-
-    <!-- Config Preview Modal -->
-    <div class="modal fade" id="configPreviewModal" tabindex="-1">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="bi bi-file-earmark-code"></i> telegraf.conf Preview</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <pre id="config-preview-content" class="config-preview"></pre>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" id="btn-apply-from-preview">
-                        <i class="bi bi-gear-wide-connected"></i> Apply Config
-                    </button>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Logs Modal -->

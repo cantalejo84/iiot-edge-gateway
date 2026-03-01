@@ -2242,3 +2242,33 @@ body {
     border: 1px solid var(--border-color);
     display: block;
 }
+
+/* ── Configuration page ─────────────────────────────────────────── */
+.telegraf-editor {
+    width: 100%;
+    min-height: 520px;
+    padding: 1rem;
+    font-family: 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
+    font-size: 0.78rem;
+    line-height: 1.6;
+    background: var(--main-bg);
+    color: var(--text-primary);
+    border: none;
+    resize: vertical;
+    outline: none;
+    display: block;
+}
+
+.callout-warning {
+    background: rgba(245, 158, 11, 0.08);
+    border-left: 3px solid var(--warning);
+    padding: 0.65rem 0.9rem;
+    border-radius: 0 4px 4px 0;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.callout-warning i {
+    color: var(--warning);
+    margin-right: 0.4rem;
+}

@@ -28,6 +28,7 @@ def create_app():
     os.makedirs(os.path.join(app.config["DATA_DIR"], "certs", "opcua"), exist_ok=True)
     os.makedirs(app.config["TELEGRAF_OUTPUT_DIR"], exist_ok=True)
 
+    from app.routes.configuration import configuration_bp
     from app.routes.dashboard import dashboard_bp
     from app.routes.help import help_bp
     from app.routes.modbus import modbus_bp
@@ -39,6 +40,7 @@ def create_app():
     app.register_blueprint(modbus_bp)
     app.register_blueprint(mqtt_bp)
     app.register_blueprint(telegraf_bp)
+    app.register_blueprint(configuration_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(help_bp)
 

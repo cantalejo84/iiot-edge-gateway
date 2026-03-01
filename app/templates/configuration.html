@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block page_title %}Configuration{% endblock %}
+
+{% block content %}
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-4" id="configTabs">
+    <li class="nav-item">
+        <button class="nav-link active" data-tab="gateway">
+            <i class="bi bi-file-earmark-arrow-down"></i> Gateway Config
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" data-tab="telegraf">
+            <i class="bi bi-file-earmark-code"></i> Telegraf Config
+        </button>
+    </li>
+</ul>
+
+<!-- Tab: Gateway Config -->
+<div id="tab-gateway" class="config-tab">
+    <div class="row g-4">
+
+        <!-- Export -->
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-download"></i> Export</div>
+                <div class="card-body d-flex flex-column">
+                    <p class="text-secondary mb-3" style="font-size:0.875rem;">
+                        Downloads a <code>gateway-config.json</code> file with the complete gateway configuration:
+                        OPC UA connection, Modbus registers, MQTT settings, node selection and publishing mode.
+                    </p>
+                    <p class="text-secondary mb-4" style="font-size:0.875rem;">
+                        Keep this file safe — it's all you need to restore the gateway after a disaster.
+                    </p>
+                    <div class="mt-auto">
+                        <a href="/api/configuration/export" class="btn btn-primary w-100" id="btn-export">
+                            <i class="bi bi-download"></i> Download gateway-config.json
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Import -->
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header"><i class="bi bi-upload"></i> Import</div>
+                <div class="card-body d-flex flex-column">
+                    <p class="text-secondary mb-3" style="font-size:0.875rem;">
+                        Restores the gateway configuration from a previously exported <code>gateway-config.json</code> file.
+                    </p>
+                    <div class="callout callout-warning mb-3">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        This will <strong>overwrite</strong> the current configuration. After importing,
+                        click <strong>Deploy config</strong> in the sidebar to apply changes to Telegraf.
+                    </div>
+                    <div class="mt-auto">
+                        <div class="d-flex gap-2">
+                            <input type="file" class="form-control form-control-sm" id="import-file" accept=".json">
+                            <button class="btn btn-outline-primary flex-shrink-0" id="btn-import">
+                                <i class="bi bi-upload"></i> Import
+                            </button>
+                        </div>
+                        <div id="import-result" class="mt-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Tab: Telegraf Config -->
+<div id="tab-telegraf" class="config-tab" style="display:none;">
+
+    <div class="callout callout-warning mb-3">
+        <i class="bi bi-exclamation-triangle"></i>
+        Manual edits will be <strong>overwritten</strong> the next time you click <strong>Deploy config</strong> from the sidebar.
+        Use this only to add Telegraf options not available in the UI.
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-file-earmark-code"></i> telegraf.conf</span>
+            <div class="d-flex align-items-center gap-2">
+                <span id="telegraf-save-indicator" class="text-secondary" style="font-family:var(--font-mono);font-size:0.7rem;"></span>
+                <button class="btn btn-sm btn-primary" id="btn-apply-telegraf">
+                    <i class="bi bi-play-fill"></i> Apply
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div id="telegraf-no-config" class="text-center text-secondary p-5" style="display:none;">
+                <i class="bi bi-file-earmark-x" style="font-size:2rem;opacity:0.3;display:block;margin-bottom:.5rem;"></i>
+                No telegraf.conf deployed yet. Use <strong>Deploy config</strong> in the sidebar first.
+            </div>
+            <textarea id="telegraf-editor" class="telegraf-editor" spellcheck="false"></textarea>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/configuration.js') }}"></script>
+{% endblock %}
