@@ -160,7 +160,7 @@ function renderLogs(events) {
     const levelColor = { error: "var(--danger)", warning: "var(--warning)", info: "var(--accent)" };
     const compColor = { opcua: "#a78bfa", mqtt: "#34d399", telegraf: "#fb923c", system: "#94a3b8" };
 
-    list.innerHTML = events.map(e => {
+    list.innerHTML = [...events].reverse().map(e => {
         const timestamp = new Date(e.ts).toISOString();
         const icon = levelIcon[e.level] || "bi-circle";
         const color = levelColor[e.level] || "var(--text-secondary)";
@@ -182,6 +182,9 @@ function renderLogs(events) {
             ${detail}
         </div>`;
     }).join("");
+
+    const scrollable = list.closest(".modal-body") || list.parentElement;
+    if (scrollable) scrollable.scrollTop = scrollable.scrollHeight;
 
     list.querySelectorAll(".log-copy-btn").forEach(btn => {
         btn.addEventListener("click", () => {

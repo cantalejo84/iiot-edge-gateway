@@ -47,7 +47,7 @@
                 <li class="nav-section-label nav-section-input">INPUT</li>
                 <li class="nav-item">
                     <a class="nav-link {% if request.path.startswith('/opcua') %}active{% endif %}" href="/opcua/config">
-                        <i class="bi bi-plug"></i> OPC UA Config
+                        <i class="bi bi-plug"></i> OPC UA
                         <span class="nav-input-dot {% if opcua_ready %}dot-ready{% endif %}" title="{% if opcua_ready %}Nodes configured{% else %}No nodes selected{% endif %}"></span>
                     </a>
                 </li>
@@ -80,7 +80,7 @@
                 <li class="nav-section-label nav-section-output">OUTPUT</li>
                 <li class="nav-item">
                     <a class="nav-link {% if request.path.startswith('/mqtt') %}active{% endif %}" href="/mqtt/config">
-                        <i class="bi bi-cloud-arrow-up"></i> MQTT Config
+                        <i class="bi bi-cloud-arrow-up"></i> MQTT
                     </a>
                 </li>
                 <li class="nav-item nav-child">

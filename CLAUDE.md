@@ -54,7 +54,7 @@ Gateway runs on port **8050** (`localhost:8050`).
 
 **Frontend:** Bootstrap 5 CDN + vanilla JS. Each page has a dedicated JS file in `app/static/js/`. Templates use Jinja2 server-side rendering. All config screens use **auto-save with debounce** (no Save buttons). Shared helpers in `app/static/js/common.js` (`fetchJSON`, `setLoading`, `showAlert`, `updateConfigStatus`).
 
-**Sidebar navigation:** Browse Nodes and Node Selection are visually nested under OPC UA Config using `.nav-child` class (indented with left border). Sections: Dashboard | INPUT | OUTPUT | SYSTEM | STATE | (bottom) Deploy config button + status badge. Branding shows "IIoT Gateway" (default theme) or "K-Gateway" (Keepler theme) with "powered by Telegraf" subtitle.
+**Sidebar navigation:** Parent items: Dashboard, OPC UA (was "OPC UA Config"), Modbus TCP, MQTT (was "MQTT Config"). Nav-children: OPC UA → Connection, Browse Nodes, Node Selection. Modbus TCP → Connection. MQTT → Connection, View Messages. All use `.nav-child` class (indented with left border). Sections: Dashboard | INPUT | OUTPUT | SYSTEM | STATE | (bottom) Deploy config button + status badge. Parent nav item active when `request.path.startswith('/opcua')` or `.startswith('/mqtt')` or `.startswith('/modbus')`. Branding shows "IIoT Gateway" (default theme) or "K-Gateway" (Keepler theme) with "powered by Telegraf" subtitle.
 
 ## Key Patterns
 
@@ -68,14 +68,28 @@ Gateway runs on port **8050** (`localhost:8050`).
 
 **Certificate path mapping:** Users upload certs to `data/certs/mqtt/` on host. Config stores container-side paths (`/etc/telegraf/certs/mqtt/*.pem`) because Telegraf reads them from its container volume mount.
 
-**Config structure:** Single `data/config.json` with sections: `opcua`, `nodes` (array), `mqtt`, `publishing`, `_meta`. Defaults defined in `app/config.py`.
+**Config structure:** Single `data/config.json` with sections: `opcua` (includes `enabled` flag), `nodes` (array), `mqtt`, `modbus` (includes `enabled`, `registers` array), `publishing`, `_meta`. Defaults defined in `app/config.py`.
+
+**Input enabled flags:** Both OPC UA and Modbus have an `enabled` boolean in config.json. OPC UA defaults to `True` (backwards compatible via `opcua.get('enabled', true)` in Jinja2). Modbus defaults to `False`. Active toggle is a **Form Switch in the card header** — not a separate button. Template check: `{% if config.enabled is not sameas false %}checked{% endif %}` (OPC UA) or `{% if config.enabled %}checked{% endif %}` (Modbus). The toggle change fires `scheduleSave()`; `save()` reads `.checked` from the toggle.
+
+**Config page layout (OPC UA and Modbus):** Two-column layout — col-lg-8 (Connection Settings, Active toggle in card header) | col-lg-4 (Actions: Demo Server, Test Connection, Clear configuration). No separate Disable/Enable button.
 
 **Telegraf MQTT topic:** Uses Telegraf template syntax `{{ .Hostname }}/{{ .PluginName }}` (NOT Go template `{{ .Name }}`). Topic values with double quotes inside must use **single quotes** in TOML to avoid parse errors.
 
 **Telegraf metrics filtering:**
-- `[[outputs.mqtt]]` uses `namepass = ["opcua"]` to only send OPC UA data to the broker (NOT `tagpass`, because OPC UA metrics don't have an `input` tag).
+- `[[outputs.mqtt]]` uses dynamic `namepass` built from enabled inputs: OPC UA adds `"opcua"`, Modbus adds `"modbus"`. Built with Jinja2 variables `opcua_on`/`modbus_on`.
 - `[[outputs.file]]` uses `namepass = ["internal_*"]` to capture internal metrics for the dashboard.
 - `[[inputs.internal]]` has `collect_memstats = true` to enable per-plugin metrics.
+
+**Modbus TCP input (Telegraf 1.33):** Uses `[[inputs.modbus]]` with register-based format — NOT metric-based. Critical requirements for Telegraf 1.33:
+- `controller` must use `tcp://` prefix: `"tcp://host:502"` — plain `"host:502"` gives "invalid controller" error
+- `address` is `[]uint16` array with ALL registers for the type: 16-bit → `[0]`, 32-bit → `[0, 1]`, 64-bit → `[0,1,2,3]`
+- `scale = 1.0` required on every register — defaults to 0.0 which is invalid
+- `FLOAT32` is deprecated → use `FLOAT32-IEEE`; `FLOAT64` → `FLOAT64-IEEE`
+- `transmission_mode = "TCP"` no longer needed (inferred from `tcp://` prefix)
+- `skip_processors_after_aggregators = false` in `[agent]` suppresses v1.40 warning
+
+In `telegraf.conf.j2`: macro `reg_addrs(addr, data_type)` computes the correct address array; macro `norm_dt(data_type)` maps deprecated type names; `tcp://` prefix is added automatically if missing. Registers grouped by type via `selectattr('register_type', 'equalto', 'holding') | list`. Coil/discrete registers use `data_type = "BOOL"`, omit `byte_order`.
 
 **Telegraf internal metrics parsing:** Dashboard reads per-plugin metrics from a shared JSON file (`/tmp/telegraf-metrics/metrics.json`), parsing NDJSON lines in reverse order. Key fields:
 - `internal_gather` (input=opcua): scan_time_ms, opcua_errors
@@ -104,9 +118,9 @@ Gateway runs on port **8050** (`localhost:8050`).
 
 **Theme system:** Two themes — default (dark) and keepler (light). Stored in `localStorage("iiot-theme")`, applied via `data-theme="keepler"` + `data-bs-theme="light"` on `<html>`. Inline `<script>` in `<head>` prevents flash on navigation. Keepler uses Montserrat font (UI only; JetBrains Mono kept for code content like config preview and MQTT payload). Corporate colors: INPUT=#b8860b, OUTPUT=#c82b4a, SYSTEM=#6b2cf5, STATE=#0891b2. Keepler sidebar is white (not dark).
 
-**Agent state control:** STATE section in sidebar has two separate buttons: `btn-agent-play` and `btn-agent-stop`. `setAgentUI(running)` in `common.js` updates their active classes and the status dot. Each button calls its own async function (`startAgent`, `stopAgent`) with `lockNav()`/`unlockNav()`.
+**Agent state control:** STATE section in sidebar has two separate buttons: `btn-agent-play` and `btn-agent-stop`. `setAgentUI(running)` in `common.js` updates their active classes and the status dot. Each button calls its own async function (`startAgent`, `stopAgent`) with `lockNav()`/`unlockNav()`. `lockNav()`/`unlockNav()` also disable/enable these STATE buttons to prevent double-clicks during long ops.
 
-**Event log:** `app/services/event_log.py` — thread-safe ring buffer `deque(maxlen=150)`. Logs OPC UA test, MQTT test, deploy config, agent start/stop events. Badge in sidebar uses `sessionStorage("logsLastSeen")` to avoid reappearing after viewing. Logs modal has two tabs: Gateway events + Telegraf raw logs (loaded via `GET /api/telegraf/logs`).
+**Event log:** `app/services/event_log.py` — thread-safe ring buffer `deque(maxlen=150)`. Logs OPC UA test, MQTT test, deploy config, agent start/stop events. Badge in sidebar uses `sessionStorage("logsLastSeen")` to avoid reappearing after viewing. Logs modal has two tabs: Gateway events + Telegraf raw logs (loaded via `GET /api/telegraf/logs`). Each log entry has a **copy-to-clipboard button** (`.log-copy-btn`, visible on hover): copies `COMPONENT | timestamp | message | detail`, icon briefly changes to `bi-clipboard-check`.
 
 **Sidebar SYSTEM section order:** Preview Config → Logs → Help.
 
@@ -124,9 +138,11 @@ Gateway runs on port **8050** (`localhost:8050`).
 ## Dashboard Layout
 
 3-section dashboard with 5-second auto-refresh:
-1. **Pipeline Health** -- OPC UA Read -> Buffer -> MQTT Send flow visualization + stats (Scan Time, Dropped, Errors, Loss Rate)
-2. **System Health** -- CPU, Memory, Disk, Network I/O in 4-column grid with progress bars
-3. **Data Quality + Gateway Info** -- OPC UA read success/error rates + uptime, nodes configured, last config applied, component status (all containers with running/stopped indicators)
+1. **Pipeline Health** -- Side-by-side layout (`.pipeline-health-body`): left column (`.pipeline-anim-col`, `border-right`) contains the flow animation; right column (`.pipeline-metrics-col`) contains vertical metric blocks. Flow animation: dual-input mode (`.pipeline-dual`) uses Y-fork — `pf-y-section` with two `pf-y-row` divs, each with a `pf-y-arm`, and a JS-positioned `pf-y-vbar`. `positionForkBar()` in `dashboard.js` sets the vertical bar height via `getBoundingClientRect()`. No pulse ring animation. Metric blocks (`.pm-block`): one per source, each with a `.pm-block-header` (colored bottom border via `currentColor`) and a `dash-grid dash-grid-metrics` grid. Sources: OPC UA (accent), Modbus (#b8860b), Output (#34d399). Status dots (`.stat-dot`) on error metrics: green if 0, red pulsing if >0, updated via `setDot(id, isOk)` in `dashboard.js`.
+2. **System Health** -- CPU, Memory, Disk, Network I/O in 4-column grid with progress bars.
+3. **Gateway Info** -- Uptime, nodes configured, last config applied, component status (all containers with running/stopped indicators + start/stop buttons for demo containers).
+
+Dashboard container start/stop: `POST /api/dashboard/container/<service>/start` and `/stop`. Only `DEMO_SERVICES = {"opcua-demo-server", "mosquitto"}` are allowed (returns 403 otherwise). Button click → disable button → call API → `refreshGatewayInfo()`.
 
 All metrics have Bootstrap tooltip hints explaining what they mean.
 
@@ -143,6 +159,7 @@ Single-card **Broker Connection** with:
 
 Built-in demo servers in `docker-compose.yml`:
 - `opcua-demo-server` -- asyncua server with simulated Plant/Line1/Line2 hierarchy (Temperature, Pressure, Speed, Status variables that update every 2s). Source: `test_infra/opcua_server/server.py`
+- `modbus-demo-server` -- pymodbus TCP server on port 502 with 5 FLOAT32-IEEE holding registers (temperature 0-1, pressure 2-3, motor_speed 4-5, voltage 6-7, current 8-9). Source: `test_infra/modbus_server/server.py`
 - `mosquitto` -- Anonymous MQTT broker on ports 1883 + 9001 (websocket). Config: `test_infra/mosquitto/mosquitto.conf`
 
 The UI has "Use Demo Server" / "Demo" quick-fill buttons.

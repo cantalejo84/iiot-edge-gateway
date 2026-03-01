@@ -7,6 +7,8 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
         new bootstrap.Tooltip(el);
     });
+    positionForkBar();
+    window.addEventListener("resize", positionForkBar);
     refreshAll();
     setInterval(refreshAll, 5000);
 
@@ -113,9 +115,11 @@ async function refreshTelegrafMetrics() {
         setText("q2-read-success", formatNum(d.opcua_read_success));
         setText("q2-read-error", formatNum(d.opcua_read_error));
         setText("q2-success-rate", total > 0 ? `${rate.toFixed(1)}%` : "--");
+        setDot("dot-read-error", d.opcua_read_error === 0);
 
         // Modbus metrics row
         setText("p-modbus-errors-stat", formatNum(d.modbus_errors));
+        setDot("dot-modbus-errors", d.modbus_errors === 0);
 
         // Output metrics row
         const droppedEl = document.getElementById("p-dropped");
@@ -123,12 +127,14 @@ async function refreshTelegrafMetrics() {
             droppedEl.textContent = formatNum(d.mqtt_dropped);
             droppedEl.style.color = d.mqtt_dropped > 0 ? "var(--warning)" : "";
         }
+        setDot("dot-dropped", d.mqtt_dropped === 0);
 
         const errorsEl = document.getElementById("p-errors");
         if (errorsEl) {
             errorsEl.textContent = formatNum(d.mqtt_errors);
             errorsEl.style.color = d.mqtt_errors > 0 ? "var(--danger)" : "";
         }
+        setDot("dot-errors", d.mqtt_errors === 0);
 
         const lossEl = document.getElementById("p-loss");
         if (lossEl) {
@@ -152,6 +158,12 @@ async function refreshTelegrafMetrics() {
 function setText(id, val) {
     const el = document.getElementById(id);
     if (el) el.textContent = val;
+}
+
+function setDot(id, isOk) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.className = "stat-dot " + (isOk ? "dot-ok" : "dot-err");
 }
 
 function setWidth(id, val) {
@@ -223,6 +235,26 @@ async function refreshGatewayInfo() {
             list.innerHTML = '<span class="text-muted" style="font-size:0.75rem;">No containers found</span>';
         }
     } catch (e) {}
+}
+
+// --- Y-fork merge bar positioning ---
+
+function positionForkBar() {
+    const opcuaNode = document.getElementById("pf-opcua");
+    const modbusNode = document.getElementById("pf-modbus");
+    const vbarWrap = document.getElementById("pf-y-vbar-wrap");
+    const vbar = document.getElementById("pf-y-vbar");
+    if (!opcuaNode || !modbusNode || !vbarWrap || !vbar) return;
+
+    const wrapRect = vbarWrap.getBoundingClientRect();
+    const opcuaRect = opcuaNode.getBoundingClientRect();
+    const modbusRect = modbusNode.getBoundingClientRect();
+
+    const topY = opcuaRect.top + opcuaRect.height / 2 - wrapRect.top;
+    const botY = modbusRect.top + modbusRect.height / 2 - wrapRect.top;
+
+    vbar.style.top = topY + "px";
+    vbar.style.height = (botY - topY) + "px";
 }
 
 // --- Helpers ---

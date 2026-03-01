@@ -452,12 +452,12 @@ body {
 
 .badge-status {
     font-family: var(--font-mono);
-    font-size: 0.7rem;
-    font-weight: 500;
+    font-size: 0.78rem;
+    font-weight: 600;
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    padding: 0.4rem 0.6rem;
+    padding: 0.45rem 0.75rem;
     border-radius: 6px;
 }
 
@@ -483,7 +483,7 @@ body {
 .page-title {
     font-family: var(--font-mono);
     font-size: 1.3rem;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--text-primary);
     margin: 0;
 }
@@ -924,7 +924,7 @@ body {
     align-items: center;
     justify-content: center;
     gap: 0;
-    padding: 1.25rem 0 0.5rem;
+    padding: 0;
 }
 
 /* Generic node */
@@ -994,18 +994,6 @@ body {
 .pipeline-dual .pf-node-opcua .pf-node-value,
 .pipeline-dual .pf-node-modbus .pf-node-value { font-size: 1.5rem; }
 
-/* Horizontal exit lines from each input node in dual mode */
-.pipeline-dual .pf-node-opcua::after,
-.pipeline-dual .pf-node-modbus::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    right: -14px;
-    width: 14px;
-    height: 2px;
-    background: var(--border-color);
-    transform: translateY(-50%);
-}
 
 /* Modbus node */
 .pf-node-modbus {
@@ -1018,24 +1006,62 @@ body {
     overflow: visible;
 }
 
-.pf-node-modbus .pf-node-icon { font-size: 1.1rem; color: #b8860b; }
+.pf-node-modbus .pf-node-icon { font-size: 1.1rem; color: var(--accent); }
 .pf-node-modbus .pf-node-value { font-size: 2rem; line-height: 1; }
 
-[data-theme="keepler"] .pf-node-modbus { background: var(--card-bg); }
+/* ── Y-fork layout (dual mode: each input → own arm → merge bar → buffer) ── */
 
-/* Fork connector — vertical merge line at left edge */
-.pf-connector-fork {
-    position: relative;
+.pf-y-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
 }
 
-.pf-connector-fork::before {
-    content: "";
+.pf-y-row {
+    display: flex;
+    align-items: center;
+}
+
+/* Horizontal arm from each input node to the vertical merge bar (animated) */
+.pf-y-arm {
+    position: relative;
+    width: 40px;
+    height: 20px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+}
+
+
+/* Vertical merge bar container (height/top set by JS to span node centers) */
+.pf-y-vbar-wrap {
+    position: relative;
+    width: 2px;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* The actual vertical bar */
+.pf-y-vbar {
     position: absolute;
     left: 0;
-    top: 0;
-    bottom: 0;
     width: 2px;
     background: var(--border-color);
+    top: 0;
+    height: 100%;
+}
+
+/* Stopped state */
+.pipeline-stopped .pf-y-arm .pf-connector-line {
+    background: var(--danger);
+    opacity: 0.35;
+}
+.pipeline-stopped .pf-y-vbar {
+    background: var(--danger);
+    opacity: 0.35;
 }
 
 /* OPC UA quality row */
@@ -1190,69 +1216,116 @@ body {
 .pipeline-status-badge.badge-stopped { color: var(--danger); }
 .pipeline-status-badge.badge-stopped .pipeline-status-dot { background: var(--danger); }
 
-/* Pipeline metrics section — labeled rows per source */
+/* Pipeline Health — side-by-side layout */
+.pipeline-health-body {
+    display: flex;
+    gap: 0;
+    align-items: stretch;
+    padding: 0;
+}
+
+.pipeline-anim-col {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-right: 1px solid var(--border-color);
+    padding: 1rem 1.25rem;
+}
+
+.pipeline-metrics-col {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    padding: 1rem 1.25rem;
+}
+
+/* Pipeline metrics section — vertical blocks per source */
 .pipeline-metrics-section {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-}
-
-.pipeline-metrics-row {
-    display: flex;
-    align-items: center;
     gap: 0.75rem;
+    width: 100%;
 }
 
-.pipeline-metrics-source {
+.pm-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.pm-block-header {
     font-family: var(--font-mono);
-    font-size: 0.62rem;
+    font-size: 0.65rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    flex-shrink: 0;
-    width: 52px;
-    text-align: right;
-    padding-right: 0.5rem;
-    border-right: 2px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding-bottom: 0.3rem;
+    border-bottom: 2px solid currentColor;
 }
 
-.opcua-label  { color: var(--accent); border-color: var(--accent); }
-.modbus-label { color: #b8860b; border-color: #b8860b; }
-.output-label { color: #34d399; border-color: #34d399; }
+.opcua-label  { color: var(--accent); }
+.modbus-label { color: #b8860b; }
+.output-label { color: #34d399; }
 
 [data-theme="keepler"] .modbus-label { color: #b8860b; }
 
 .dash-grid-metrics {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
     gap: 0.4rem;
-    flex: 1;
+    width: 100%;
 }
 
 /* Pipeline stats row */
 .pipeline-stat {
     text-align: center;
-    padding: 0.4rem 0.5rem;
+    padding: 0.3rem 0.5rem;
     background: var(--sidebar-bg);
     border-radius: 5px;
     border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .pipeline-stat-value {
     font-family: var(--font-mono);
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: 700;
     color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
 }
 
 .pipeline-stat-label {
     font-family: var(--font-mono);
-    font-size: 0.58rem;
+    font-size: 0.6rem;
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-top: 0.1rem;
+    font-weight: 400;
 }
+
+/* Status dot for error/ok metrics */
+.stat-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--text-muted);
+    opacity: 0.4;
+}
+.stat-dot.dot-ok  { background: var(--success); opacity: 0.7; }
+.stat-dot.dot-err { background: var(--danger);  opacity: 1; animation: dotPulse 1.8s ease-in-out infinite; }
 
 /* ── Gateway Info meta row ──────────────────────────────────────── */
 
@@ -1694,28 +1767,31 @@ body {
 .telegraf-raw-logs {
     max-height: 420px;
     overflow-y: auto;
-    padding: 0.5rem 0;
+    padding: 0;
     font-family: 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
-    font-size: 0.72rem;
+    font-size: 0.82rem;
 }
 
 .tlog-line {
-    padding: 0.15rem 1rem;
+    padding: 0.6rem 1rem;
     line-height: 1.5;
+    border-bottom: 1px solid var(--border-color);
     border-left: 3px solid transparent;
     color: var(--text-secondary);
     word-break: break-all;
 }
 
+.tlog-line:last-child { border-bottom: none; }
+
 .tlog-error {
     color: var(--danger);
-    background: color-mix(in srgb, var(--danger) 6%, transparent);
+    background: rgba(239, 68, 68, 0.05);
     border-color: var(--danger);
 }
 
 .tlog-warn {
     color: var(--warning);
-    background: color-mix(in srgb, var(--warning) 6%, transparent);
+    background: rgba(245, 158, 11, 0.05);
     border-color: var(--warning);
 }
 
