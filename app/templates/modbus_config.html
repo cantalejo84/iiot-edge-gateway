@@ -41,6 +41,12 @@
                             value="{{ config.timeout }}" placeholder="5s">
                         <div class="form-text">Connection timeout (e.g. 5s)</div>
                     </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Poll Interval</label>
+                        <input type="text" class="form-control form-control-sm" id="modbus-poll-interval"
+                            value="{{ config.poll_interval or '10s' }}" placeholder="10s">
+                        <div class="form-text">How often to read registers (e.g. 10s, 30s, 1m)</div>
+                    </div>
                 </div>
                 <div class="mt-2">
                     <span id="save-indicator" class="text-secondary" style="font-family: var(--font-mono); font-size: 0.7rem;"></span>
@@ -55,15 +61,15 @@
             <div class="card-header">Actions</div>
             <div class="card-body p-3">
                 <div class="d-grid gap-2">
-                    <button class="btn btn-outline-secondary" id="btn-demo-fill">
-                        <i class="bi bi-lightning"></i> Use Demo Server
-                    </button>
                     <button class="btn btn-outline-secondary" id="btn-test-connection">
                         <i class="bi bi-plug"></i> Test Connection
                     </button>
                     <div id="test-result" class="test-result"></div>
-                    <hr class="my-0">
-                    <button class="btn btn-outline-danger" id="btn-clear-modbus">
+                    <button class="btn btn-outline-secondary" id="btn-demo-fill">
+                        <i class="bi bi-lightning"></i> Use Demo Server
+                    </button>
+                    <div class="mqtt-actions-divider"></div>
+                    <button class="btn btn-outline-secondary" id="btn-clear-modbus">
                         <i class="bi bi-trash"></i> Clear configuration
                     </button>
                 </div>

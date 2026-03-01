@@ -19,7 +19,7 @@ services:
       - telegraf
 
   telegraf:
-    image: telegraf:1.33
+    image: telegraf:1.37
     user: "0:0"
     entrypoint:
       - /bin/sh

@@ -7,6 +7,7 @@
   round_interval = true
   flush_interval = "10s"
   hostname = "iiot-edge-gateway"
+  skip_processors_after_aggregators = false
 
 ###############################################################################
 #                            INPUT PLUGINS                                     #
@@ -73,38 +74,59 @@
 {%- set input_r  = modbus.registers | selectattr('register_type', 'equalto', 'input')    | list %}
 {%- set coil     = modbus.registers | selectattr('register_type', 'equalto', 'coil')     | list %}
 {%- set discrete = modbus.registers | selectattr('register_type', 'equalto', 'discrete') | list %}
+{#- Macro: expand starting address into full register array based on data type width -#}
+{%- macro reg_addrs(addr, data_type) -%}
+  {%- set a = addr | int -%}
+  {%- if data_type in ['FLOAT32', 'FLOAT32-IEEE', 'INT32', 'UINT32'] -%}
+    {{ a }}, {{ a + 1 }}
+  {%- elif data_type in ['FLOAT64', 'FLOAT64-IEEE', 'INT64', 'UINT64'] -%}
+    {{ a }}, {{ a + 1 }}, {{ a + 2 }}, {{ a + 3 }}
+  {%- else -%}
+    {{ a }}
+  {%- endif -%}
+{%- endmacro -%}
+{#- Macro: normalize deprecated data type names -#}
+{%- macro norm_dt(data_type) -%}
+  {%- if data_type == 'FLOAT32' %}FLOAT32-IEEE
+  {%- elif data_type == 'FLOAT64' %}FLOAT64-IEEE
+  {%- else %}{{ data_type }}
+  {%- endif -%}
+{%- endmacro -%}
+{#- Ensure controller has tcp:// prefix -#}
+{%- set ctrl = modbus.controller %}
+{%- if '://' not in ctrl %}{% set ctrl = 'tcp://' + ctrl %}{% endif %}
 
 [[inputs.modbus]]
   name = "modbus"
-  controller = "{{ modbus.controller }}"
-  transmission_mode = "TCP"
+  interval = "{{ modbus.poll_interval or '10s' }}"
+  controller = "{{ ctrl }}"
   slave_id = {{ modbus.slave_id }}
   timeout = "{{ modbus.timeout }}"
 {%- if holding %}
   holding_registers = [
 {%- for r in holding %}
-    {name = "{{ r.name }}", address = {{ r.address }}, data_type = "{{ r.data_type }}", byte_order = "{{ r.byte_order }}"},
+    {name = "{{ r.name }}", address = [{{ reg_addrs(r.address, r.data_type) }}], data_type = "{{ norm_dt(r.data_type) }}", byte_order = "{{ r.byte_order }}", scale = 1.0},
 {%- endfor %}
   ]
 {%- endif %}
 {%- if input_r %}
   input_registers = [
 {%- for r in input_r %}
-    {name = "{{ r.name }}", address = {{ r.address }}, data_type = "{{ r.data_type }}", byte_order = "{{ r.byte_order }}"},
+    {name = "{{ r.name }}", address = [{{ reg_addrs(r.address, r.data_type) }}], data_type = "{{ norm_dt(r.data_type) }}", byte_order = "{{ r.byte_order }}", scale = 1.0},
 {%- endfor %}
   ]
 {%- endif %}
 {%- if coil %}
   coil_registers = [
 {%- for r in coil %}
-    {name = "{{ r.name }}", address = {{ r.address }}, data_type = "BOOL"},
+    {name = "{{ r.name }}", address = [{{ r.address | int }}], data_type = "BOOL", scale = 1.0},
 {%- endfor %}
   ]
 {%- endif %}
 {%- if discrete %}
   discrete_input_registers = [
 {%- for r in discrete %}
-    {name = "{{ r.name }}", address = {{ r.address }}, data_type = "BOOL"},
+    {name = "{{ r.name }}", address = [{{ r.address | int }}], data_type = "BOOL", scale = 1.0},
 {%- endfor %}
   ]
 {%- endif %}

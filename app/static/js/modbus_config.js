@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderTable();
 
     // Wire auto-save on connection fields and toggle
-    ["modbus-controller", "modbus-slave-id", "modbus-timeout"].forEach(id => {
+    ["modbus-controller", "modbus-slave-id", "modbus-timeout", "modbus-poll-interval"].forEach(id => {
         document.getElementById(id).addEventListener("input", scheduleSave);
     });
     document.getElementById("modbus-enabled-toggle").addEventListener("change", scheduleSave);
@@ -140,6 +140,7 @@ async function save() {
         controller: document.getElementById("modbus-controller").value.trim(),
         slave_id: parseInt(document.getElementById("modbus-slave-id").value) || 1,
         timeout: document.getElementById("modbus-timeout").value.trim() || "5s",
+        poll_interval: document.getElementById("modbus-poll-interval").value.trim() || "10s",
         registers,
     };
     await fetchJSON("/api/modbus/config", { method: "POST", body: JSON.stringify(payload) });
@@ -187,6 +188,7 @@ async function fillDemo() {
     document.getElementById("modbus-controller").value = "modbus-demo-server:502";
     document.getElementById("modbus-slave-id").value = "1";
     document.getElementById("modbus-timeout").value = "5s";
+    document.getElementById("modbus-poll-interval").value = "10s";
     document.getElementById("modbus-enabled-toggle").checked = true;
 
     if (registers.length === 0) {
@@ -212,6 +214,7 @@ async function clearConfig() {
     document.getElementById("modbus-controller").value = "";
     document.getElementById("modbus-slave-id").value = "1";
     document.getElementById("modbus-timeout").value = "5s";
+    document.getElementById("modbus-poll-interval").value = "10s";
     document.getElementById("modbus-enabled-toggle").checked = false;
     await save();
     showAlert("Modbus configuration cleared.", "info");

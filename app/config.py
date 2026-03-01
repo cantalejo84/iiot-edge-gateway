@@ -19,6 +19,7 @@ DEFAULT_CONFIG = {
         "controller": "modbus-demo-server:502",
         "slave_id": 1,
         "timeout": "5s",
+        "poll_interval": "10s",
         "registers": [],
     },
     "mqtt": {
