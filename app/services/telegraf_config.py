@@ -28,10 +28,16 @@ def render_config(config):
     env.filters["toml_dq"] = _toml_dq
     env.filters["toml_sq"] = _toml_sq
     template = env.get_template("telegraf.conf.j2")
+    _default_acquisition = {
+        "mode": "polling", "scan_rate": "10s", "sampling_interval": "1s",
+        "queue_size": 10, "trigger": "StatusValue", "deadband_type": "None",
+        "deadband_value": 0.0,
+    }
     return template.render(
         opcua=config.get("opcua", {}),
         nodes=config.get("nodes", []),
         mqtt=config.get("mqtt", {}),
+        acquisition={**_default_acquisition, **config.get("acquisition", {})},
         publishing=config.get(
             "publishing", {"mode": "individual", "group_interval": "10s"}
         ),

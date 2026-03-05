@@ -13,7 +13,16 @@ DEFAULT_CONFIG = {
         "private_key": "",
     },
     "nodes": [],
-    "publishing": {"mode": "individual", "group_interval": "10s"},
+    "acquisition": {
+        "mode": "polling",
+        "scan_rate": "30s",
+        "sampling_interval": "1s",
+        "queue_size": 10,
+        "trigger": "StatusValue",
+        "deadband_type": "None",
+        "deadband_value": 0.0,
+    },
+    "publishing": {"mode": "grouped", "group_interval": "30s"},
     "modbus": {
         "enabled": False,
         "controller": "modbus-demo-server:502",

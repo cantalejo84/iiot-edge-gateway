@@ -50,6 +50,15 @@
                         <div class="pf-node-value" id="p-opcua-read">--</div>
                         <div class="pf-node-sub">data points <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Total OPC UA data points collected since last Telegraf restart. Each configured node produces 1 point per cycle."></i></div>
                     </div>
+                    {% if grouped_mode %}
+                    <div class="pf-y-arm pf-agg-arm"><div class="pf-connector-line"></div></div>
+                    <div class="pf-node pf-node-agg pf-node-agg-compact">
+                        <div class="pf-node-icon"><i class="bi bi-intersect"></i></div>
+                        <div class="pf-node-label">Aggregator</div>
+                        <div class="pf-node-value" id="p-agg-grouped">--</div>
+                        <div class="pf-node-sub">merged msgs</div>
+                    </div>
+                    {% endif %}
                     <div class="pf-y-arm">
                         <div class="pf-connector-line"></div>
                     </div>
@@ -118,6 +127,17 @@
                 </div>
                 {% endif %}
             </div>
+            {% if grouped_mode and has_opcua %}
+            <div class="pf-connector pf-connector-short">
+                <div class="pf-connector-line"></div>
+            </div>
+            <div class="pf-node pf-node-agg">
+                <div class="pf-node-icon"><i class="bi bi-intersect"></i></div>
+                <div class="pf-node-label">Aggregator</div>
+                <div class="pf-node-value" id="p-agg-grouped">--</div>
+                <div class="pf-node-sub">merged msgs</div>
+            </div>
+            {% endif %}
             <div class="pf-connector">
                 <div class="pf-connector-line"></div>
                 <div class="pf-connector-x"><i class="bi bi-x"></i></div>

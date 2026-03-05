@@ -109,6 +109,20 @@ def save_selected_nodes():
     return jsonify({"ok": True})
 
 
+@opcua_bp.route("/api/opcua/acquisition", methods=["GET"])
+def get_acquisition():
+    from app.config import DEFAULT_CONFIG
+    defaults = DEFAULT_CONFIG.get("acquisition", {})
+    return jsonify({**defaults, **config_store.get_section("acquisition")})
+
+
+@opcua_bp.route("/api/opcua/acquisition", methods=["POST"])
+def save_acquisition():
+    data = request.get_json()
+    config_store.update_section("acquisition", data)
+    return jsonify({"ok": True})
+
+
 @opcua_bp.route("/api/opcua/publishing", methods=["GET"])
 def get_publishing():
     return jsonify(config_store.get_section("publishing"))

@@ -47,6 +47,16 @@ You configure your inputs (OPC UA nodes or Modbus registers), set your cloud end
 
 ## Quick Start
 
+Install a specific release (recommended):
+
+```bash
+git clone --branch v0.2.0 --depth 1 https://github.com/cantalejo84/iiot-edge-gateway.git
+cd iiot-edge-gateway
+docker compose up -d
+```
+
+Or clone the latest development version:
+
 ```bash
 git clone https://github.com/cantalejo84/iiot-edge-gateway.git
 cd iiot-edge-gateway
@@ -56,6 +66,13 @@ docker compose up -d
 Open **http://localhost:8050** in your browser.
 
 > Demo servers for OPC UA and Modbus TCP are included, plus a Mosquitto MQTT broker. No external services needed to try it out.
+
+### Available releases
+
+| Version | Notes |
+|---|---|
+| `v0.2.0` | Modbus TCP, Acquisition Mode (Polling/Subscription), Configuration page |
+| `v0.1.0` | Initial release — OPC UA + MQTT |
 
 ---
 
@@ -77,13 +94,14 @@ Use the **Use Demo Server** button to auto-fill with the built-in Modbus simulat
 
 ## Updating
 
-To update the gateway to a new version on a running server:
+To update to a new release on a running server:
 
 ```bash
 cd iiot-edge-gateway
 
-# Pull the new release
-git pull origin 1.2.0
+# Fetch all tags and switch to the new release
+git fetch --tags
+git checkout v0.2.0
 
 # Rebuild and restart the gateway container (Telegraf and data are untouched)
 docker compose up --build -d gateway

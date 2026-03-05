@@ -1,9 +1,11 @@
 {% extends "base.html" %}
 
-{% block page_title %}Node Selection{% endblock %}
+{% block page_title %}Acquisition{% endblock %}
 
 {% block content %}
-<div class="card">
+
+<!-- Selected Nodes -->
+<div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
         <span>Selected Nodes (<span id="node-count">0</span>)</span>
         <div class="d-flex gap-2">
@@ -26,9 +28,6 @@
                         <th>Namespace</th>
                         <th>Identifier</th>
                         <th>Type</th>
-                        <th>Mode</th>
-                        <th>Interval</th>
-                        <th>Deadband</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -38,8 +37,106 @@
         </div>
     </div>
 </div>
-<!-- Message Format card -->
-<div class="card mt-4">
+
+<!-- Acquisition Mode -->
+<div class="card mb-4">
+    <div class="card-header d-flex align-items-center gap-2">
+        <span>Acquisition Mode</span>
+        <i class="bi bi-info-circle text-muted hint-icon"
+           data-bs-toggle="tooltip"
+           title="How Telegraf collects data from the OPC UA server. Applies to all selected nodes."></i>
+    </div>
+    <div class="card-body p-3">
+        <div class="d-flex gap-2 mb-3">
+            <button type="button" class="btn btn-sm acq-mode-btn" id="btn-mode-polling" data-mode="polling">
+                <i class="bi bi-arrow-repeat"></i> Polling
+            </button>
+            <button type="button" class="btn btn-sm acq-mode-btn" id="btn-mode-subscription" data-mode="subscription">
+                <i class="bi bi-bell"></i> Subscription
+            </button>
+        </div>
+
+        <!-- Polling config -->
+        <div id="acq-polling-section">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">Scan Rate
+                        <i class="bi bi-info-circle text-muted hint-icon ms-1" data-bs-toggle="tooltip"
+                           title="How often Telegraf reads and publishes all OPC UA nodes. Applies equally to all nodes. Use s (seconds), ms (milliseconds), m (minutes)."></i>
+                    </label>
+                    <input type="text" class="form-control" id="acq-scan-rate" placeholder="10s">
+                </div>
+            </div>
+        </div>
+
+        <!-- Subscription config -->
+        <div id="acq-subscription-section" style="display:none;">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Sampling Interval
+                        <i class="bi bi-info-circle text-muted hint-icon ms-1" data-bs-toggle="tooltip"
+                           title="How often the OPC UA server monitors each node for value changes. This is a server-side rate — the server notifies Telegraf when a change is detected within this interval."></i>
+                    </label>
+                    <input type="text" class="form-control" id="acq-sampling-interval" placeholder="1s">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Queue Size
+                        <i class="bi bi-info-circle text-muted hint-icon ms-1" data-bs-toggle="tooltip"
+                           title="Number of change notifications the server buffers per node. Increase if Telegraf processes data slower than the server detects changes."></i>
+                    </label>
+                    <input type="number" class="form-control" id="acq-queue-size" min="1" placeholder="10">
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <div class="form-label fw-semibold" style="font-size:0.82rem;">Data Change Filter</div>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Trigger
+                            <i class="bi bi-info-circle text-muted hint-icon ms-1" data-bs-toggle="tooltip"
+                               title="Condition that causes the server to send a notification. StatusValue (recommended): notify on value or quality change. Status: quality changes only. StatusValueTimestamp: any change including timestamp."></i>
+                        </label>
+                        <select class="form-select" id="acq-trigger">
+                            <option value="Status">Status</option>
+                            <option value="StatusValue">StatusValue</option>
+                            <option value="StatusValueTimestamp">StatusValueTimestamp</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Deadband Type
+                            <i class="bi bi-info-circle text-muted hint-icon ms-1" data-bs-toggle="tooltip"
+                               title="None: notify on any value change. Absolute: only notify if value changes by more than deadband value (in engineering units). Percent: only notify if change exceeds deadband % of the value range."></i>
+                        </label>
+                        <select class="form-select" id="acq-deadband-type">
+                            <option value="None">None</option>
+                            <option value="Absolute">Absolute</option>
+                            <option value="Percent">Percent</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3" id="acq-deadband-value-col">
+                        <label class="form-label">Deadband Value
+                            <i class="bi bi-info-circle text-muted hint-icon ms-1" data-bs-toggle="tooltip"
+                               title="Threshold for the deadband filter. For Absolute: engineering units (e.g. 0.5 for 0.5°C). For Percent: 0–100."></i>
+                        </label>
+                        <input type="number" class="form-control" id="acq-deadband-value" min="0" step="0.1" placeholder="0">
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-info py-2 px-3 mt-3 mb-0" style="font-size:0.8rem;">
+                <i class="bi bi-info-circle-fill"></i>
+                <strong>Subscription mode:</strong> the OPC UA server pushes data when values change — the MQTT publish rate is not fixed. It depends on how often your process variables change within the sampling interval.
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <span id="acq-save-indicator" class="text-secondary" style="font-family:var(--font-mono);font-size:0.7rem;"></span>
+        </div>
+    </div>
+</div>
+
+<!-- Message Format -->
+<div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <span><i class="bi bi-send"></i> Message Format</span>
         <span class="badge-status badge-clean d-none" id="publishing-saved-badge">
@@ -77,21 +174,11 @@
                     <div class="publishing-option-desc">
                         All nodes combined into a single MQTT message per cycle.
                         One payload with all fields. Best for dashboards and time-series ingestion.
-                        Uses Polling mode — per-node intervals are replaced by the group interval below.
+                        The scan rate is configured in Acquisition Mode above.
                     </div>
                     <div class="publishing-example">
                         <div class="publishing-example-label">Example output (3 nodes → 1 message)</div>
 <pre>{"fields": {"Temperature": 27.1, "TankLevel": 77.4, "MachineState": "Run"}, ...}</pre>
-                    </div>
-                    <div class="publishing-group-interval mt-3" id="group-interval-row">
-                        <label class="form-label mb-1" style="font-size:0.78rem;font-weight:600;">Group sampling interval</label>
-                        <div class="d-flex align-items-center gap-2">
-                            <input type="text" id="group-interval" class="form-control form-control-sm"
-                                   style="width:7rem;" placeholder="10s">
-                            <span style="font-size:0.78rem;color:var(--text-muted);">
-                                Applied to all nodes. Use <code>s</code>, <code>ms</code>, <code>m</code>.
-                            </span>
-                        </div>
                     </div>
                 </div>
             </label>

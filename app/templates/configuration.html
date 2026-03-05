@@ -77,13 +77,18 @@
 
     <div class="callout callout-warning mb-3">
         <i class="bi bi-exclamation-triangle"></i>
-        Manual edits will be <strong>overwritten</strong> the next time you click <strong>Deploy config</strong> from the sidebar.
-        Use this only to add Telegraf options not available in the UI.
+        Edit the config and click <strong>Apply</strong> to restart Telegraf immediately.
+        Note: clicking <strong>Deploy config</strong> in the sidebar will regenerate this file from the UI settings, discarding any manual edits.
     </div>
 
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <span><i class="bi bi-file-earmark-code"></i> telegraf.conf</span>
+            <span>
+                <i class="bi bi-file-earmark-code"></i> telegraf.conf
+                {% if telegraf_version %}
+                <span class="text-muted ms-1" style="font-size:0.72rem;font-family:var(--font-mono);">(Telegraf {{ telegraf_version }})</span>
+                {% endif %}
+            </span>
             <div class="d-flex align-items-center gap-2">
                 <span id="telegraf-save-indicator" class="text-secondary" style="font-family:var(--font-mono);font-size:0.7rem;"></span>
                 <button class="btn btn-sm btn-primary" id="btn-apply-telegraf">

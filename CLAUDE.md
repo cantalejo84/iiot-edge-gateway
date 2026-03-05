@@ -54,7 +54,7 @@ Gateway runs on port **8050** (`localhost:8050`).
 
 **Frontend:** Bootstrap 5 CDN + vanilla JS. Each page has a dedicated JS file in `app/static/js/`. Templates use Jinja2 server-side rendering. All config screens use **auto-save with debounce** (no Save buttons). Shared helpers in `app/static/js/common.js` (`fetchJSON`, `setLoading`, `showAlert`, `updateConfigStatus`).
 
-**Sidebar navigation:** Parent items: Dashboard, OPC UA (was "OPC UA Config"), Modbus TCP, MQTT (was "MQTT Config"). Nav-children: OPC UA → Connection, Browse Nodes, Node Selection. Modbus TCP → Connection. MQTT → Connection, View Messages. All use `.nav-child` class (indented with left border). Sections: Dashboard | INPUT | OUTPUT | SYSTEM | STATE | (bottom) Deploy config button + status badge. Parent nav item active when `request.path.startswith('/opcua')` or `.startswith('/mqtt')` or `.startswith('/modbus')`. Branding shows "IIoT Gateway" (default theme) or "K-Gateway" (Keepler theme) with "powered by Telegraf" subtitle.
+**Sidebar navigation:** Parent items: Dashboard, OPC UA, Modbus TCP, MQTT. Nav-children: OPC UA → Connection, Browse Nodes, **Acquisition** (icon `bi-sliders`, was "Node Selection"). Modbus TCP → Connection. MQTT → Connection, View Messages. All use `.nav-child` class (indented with left border). Sections: Dashboard | INPUT | OUTPUT | SYSTEM | STATE | (bottom) Deploy config button + status badge. Parent nav item active when `request.path.startswith('/opcua')` or `.startswith('/mqtt')` or `.startswith('/modbus')`. Branding shows "IIoT Gateway" (default theme) or "K-Gateway" (Keepler theme) with "powered by Telegraf" subtitle.
 
 ## Key Patterns
 
@@ -68,7 +68,7 @@ Gateway runs on port **8050** (`localhost:8050`).
 
 **Certificate path mapping:** Users upload certs to `data/certs/mqtt/` on host. Config stores container-side paths (`/etc/telegraf/certs/mqtt/*.pem`) because Telegraf reads them from its container volume mount.
 
-**Config structure:** Single `data/config.json` with sections: `opcua` (includes `enabled` flag), `nodes` (array), `mqtt`, `modbus` (includes `enabled`, `registers` array), `publishing`, `_meta`. Defaults defined in `app/config.py`.
+**Config structure:** Single `data/config.json` with sections: `opcua` (includes `enabled` flag), `nodes` (array), `mqtt`, `modbus` (includes `enabled`, `registers` array), `publishing`, `acquisition`, `_meta`. Defaults defined in `app/config.py`.
 
 **Input enabled flags:** Both OPC UA and Modbus have an `enabled` boolean in config.json. OPC UA defaults to `True` (backwards compatible via `opcua.get('enabled', true)` in Jinja2). Modbus defaults to `False`. Active toggle is a **Form Switch in the card header** — not a separate button. Template check: `{% if config.enabled is not sameas false %}checked{% endif %}` (OPC UA) or `{% if config.enabled %}checked{% endif %}` (Modbus). The toggle change fires `scheduleSave()`; `save()` reads `.checked` from the toggle.
 
@@ -102,7 +102,16 @@ In `telegraf.conf.j2`: macro `reg_addrs(addr, data_type)` computes the correct a
 
 **Telegraf permissions:** Container runs as `user: "0:0"` (root) with an entrypoint that pre-creates the metrics file before starting Telegraf.
 
-**Message Format (publishing):** Node Selection has an Individual / Grouped toggle stored in `config.json` under `publishing` (`mode`, `group_interval`). API: `GET/POST /api/opcua/publishing`. Grouped mode uses `[[inputs.opcua.group]]` + `tagexclude = ["id"]` + `[[aggregators.merge]]` with `drop_original = true`. **Critical:** use `aggregators.merge`, NOT `processors.merge` (doesn't exist). `drop_original = true` is required — without it both individual and grouped messages are published. `[[inputs.opcua.group]]` does NOT support `metric_name` in Telegraf 1.33.
+**Message Format (publishing):** The Acquisition page has an Individual / Grouped toggle stored in `config.json` under `publishing` (`mode`, `group_interval`). Default: `mode="grouped"`, `group_interval="30s"`. API: `GET/POST /api/opcua/publishing`. Grouped mode uses `[[inputs.opcua.group]]` + `tagexclude = ["id"]` + `[[aggregators.merge]]` with `drop_original = true`. **Critical:** use `aggregators.merge`, NOT `processors.merge` (doesn't exist). `drop_original = true` is required — without it both individual and grouped messages are published. `[[inputs.opcua.group]]` does NOT support `metric_name` in Telegraf 1.33.
+
+**OPC UA Acquisition Mode:** Stored in `acquisition` section of `config.json`. API: `GET/POST /api/opcua/acquisition`. Defaults: `mode="polling"`, `scan_rate="30s"`, `sampling_interval="1s"`, `deadband_type="None"`, `deadband_value=0.0`. Two modes:
+- **Polling**: adds plugin-level `interval = scan_rate` to `[[inputs.opcua]]`. No `monitoring_params`.
+- **Subscription**: no plugin-level interval. Each node gets `[inputs.opcua.nodes.monitoring_params]` + nested `[inputs.opcua.nodes.monitoring_params.data_change_filter]`. **Critical:** deadband must be inside `data_change_filter`, NOT at `monitoring_params` level.
+In `telegraf.conf.j2`: variables `acq`, `opcua_scan`, `opcua_sample`, `is_subscription`. `aggregators.merge period` = `opcua_sample if is_subscription else opcua_scan`. Route merges saved config with `DEFAULT_CONFIG` defaults to handle existing configs without the `acquisition` key.
+
+**Autofill prevention pattern:** Browser autofill fires `input`/`change` events on hidden fields (password) at page load → spurious auto-save. Fix: `let userInteracted = false` + listeners on `pointerdown`/`keydown` with `{ once: true }`. `scheduleAutoSave()` returns early if `!userInteracted`. Applied in `opcua_config.html`.
+
+**Dashboard aggregator race condition:** `refreshTelegrafMetrics()` runs before `refreshGatewayInfo()` sets `nodesConfigured`. Fix: `/api/dashboard/telegraf-metrics` response includes `nodes_configured` read from config.json. Loss rate false positive after Telegraf restart: only compute when `d.mqtt_written > 0`.
 
 **First-deploy detection:** `dashboard.py` checks `os.path.isfile(conf_path)` and passes `never_deployed` to the template. A welcome banner is shown when no config has been deployed yet.
 
@@ -118,7 +127,7 @@ In `telegraf.conf.j2`: macro `reg_addrs(addr, data_type)` computes the correct a
 
 **Theme system:** Two themes — default (dark) and keepler (light). Stored in `localStorage("iiot-theme")`, applied via `data-theme="keepler"` + `data-bs-theme="light"` on `<html>`. Inline `<script>` in `<head>` prevents flash on navigation. Keepler uses Montserrat font (UI only; JetBrains Mono kept for code content like config preview and MQTT payload). Corporate colors: INPUT=#b8860b, OUTPUT=#c82b4a, SYSTEM=#6b2cf5, STATE=#0891b2. Keepler sidebar is white (not dark).
 
-**Agent state control:** STATE section in sidebar has two separate buttons: `btn-agent-play` and `btn-agent-stop`. `setAgentUI(running)` in `common.js` updates their active classes and the status dot. Each button calls its own async function (`startAgent`, `stopAgent`) with `lockNav()`/`unlockNav()`. `lockNav()`/`unlockNav()` also disable/enable these STATE buttons to prevent double-clicks during long ops.
+**Agent state control:** STATE section in sidebar has two separate buttons: `btn-agent-play` and `btn-agent-stop`. `setAgentUI(running)` in `common.js` updates their active classes and the status dot. Each button calls its own async function (`startAgent`, `stopAgent`) with `lockNav()`/`unlockNav()`. `lockNav()`/`unlockNav()` also disable/enable these STATE buttons to prevent double-clicks during long ops. `applyConfig()` llama `setAgentUI(true)` tras restart exitoso. `.btn-state:disabled { opacity: 1 }` — NO reducir opacity al deshabilitar, para que la sección STATE se vea igual durante el lock del Deploy.
 
 **Event log:** `app/services/event_log.py` — thread-safe ring buffer `deque(maxlen=150)`. Logs OPC UA test, MQTT test, deploy config, agent start/stop events. Badge in sidebar uses `sessionStorage("logsLastSeen")` to avoid reappearing after viewing. Logs modal has two tabs: Gateway events + Telegraf raw logs (loaded via `GET /api/telegraf/logs`). Each log entry has a **copy-to-clipboard button** (`.log-copy-btn`, visible on hover): copies `COMPONENT | timestamp | message | detail`, icon briefly changes to `bi-clipboard-check`.
 

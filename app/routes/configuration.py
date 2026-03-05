@@ -6,6 +6,7 @@ import time
 from flask import Blueprint, current_app, jsonify, render_template, request, send_file
 
 from app.services import config_store, event_log
+from app.services.system_monitor import get_telegraf_version
 from app.services.telegraf_config import render_config
 
 configuration_bp = Blueprint("configuration", __name__)
@@ -13,7 +14,7 @@ configuration_bp = Blueprint("configuration", __name__)
 
 @configuration_bp.route("/configuration")
 def configuration_page():
-    return render_template("configuration.html")
+    return render_template("configuration.html", telegraf_version=get_telegraf_version())
 
 
 # ── Gateway config export ──────────────────────────────────────────────────────

@@ -68,6 +68,22 @@
                     <button class="btn btn-outline-secondary" id="btn-demo-fill">
                         <i class="bi bi-lightning"></i> Use Demo Server
                     </button>
+                    <details class="demo-info-block">
+                        <summary><i class="bi bi-info-circle"></i> About this demo server</summary>
+                        <div class="demo-info-body">
+                            <div class="demo-info-row"><span class="demo-info-key">Library</span><span>pymodbus 3.7.4</span></div>
+                            <div class="demo-info-row"><span class="demo-info-key">Endpoint</span><code>modbus-demo-server:502</code></div>
+                            <div class="demo-info-row"><span class="demo-info-key">Slave ID</span><span>1</span></div>
+                            <div class="demo-info-row"><span class="demo-info-key">Type</span><span>Holding registers · FLOAT32-IEEE · ABCD</span></div>
+                            <div class="demo-info-row"><span class="demo-info-key">Update rate</span><span>2 s</span></div>
+                            <div class="demo-info-divider">Register map (0-based addresses)</div>
+                            <div class="demo-info-row"><span class="demo-info-key">addr 0–1</span><span>temperature · 20–30 °C</span></div>
+                            <div class="demo-info-row"><span class="demo-info-key">addr 2–3</span><span>pressure · 1–5 bar</span></div>
+                            <div class="demo-info-row"><span class="demo-info-key">addr 4–5</span><span>motor_speed · 1000–1500 RPM</span></div>
+                            <div class="demo-info-row"><span class="demo-info-key">addr 6–7</span><span>voltage · 220–240 V</span></div>
+                            <div class="demo-info-row"><span class="demo-info-key">addr 8–9</span><span>current · 5–15 A</span></div>
+                        </div>
+                    </details>
                     <div class="mqtt-actions-divider"></div>
                     <button class="btn btn-outline-secondary" id="btn-clear-modbus">
                         <i class="bi bi-trash"></i> Clear configuration

@@ -1,11 +1,15 @@
-// Node Selection - Table management with per-node config + auto-save
+// Node Selection - Acquisition mode config + node table + message format
 
 let nodes = [];
 let saveTimeout = null;
+let acqTimeout = null;
 let publishingTimeout = null;
 
 document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+
     loadNodes();
+    loadAcquisition();
     loadPublishing();
 
     document.getElementById("btn-clear-all").addEventListener("click", () => {
@@ -16,19 +20,108 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Publishing mode radios
-    document.querySelectorAll("input[name='publishing_mode']").forEach(radio => {
-        radio.addEventListener("change", () => {
-            updateGroupIntervalVisibility();
-            schedulePublishingSave();
+    // Acquisition mode toggle
+    document.querySelectorAll(".acq-mode-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            setAcqMode(btn.dataset.mode);
+            scheduleAcqSave();
         });
     });
 
-    // Group interval input
-    document.getElementById("group-interval").addEventListener("input", () => {
-        schedulePublishingSave();
+    // Acquisition fields — auto-save on change
+    ["acq-scan-rate", "acq-sampling-interval", "acq-queue-size", "acq-trigger", "acq-deadband-type", "acq-deadband-value"]
+        .forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener("input", scheduleAcqSave);
+                el.addEventListener("change", scheduleAcqSave);
+            }
+        });
+
+    // Deadband type controls value field visibility
+    document.getElementById("acq-deadband-type").addEventListener("change", updateDeadbandValueVisibility);
+
+    // Publishing mode radios
+    document.querySelectorAll("input[name='publishing_mode']").forEach(radio => {
+        radio.addEventListener("change", schedulePublishingSave);
     });
 });
+
+// ── Acquisition Mode ─────────────────────────────────────────────
+
+function setAcqMode(mode) {
+    document.querySelectorAll(".acq-mode-btn").forEach(btn => {
+        btn.classList.toggle("btn-primary", btn.dataset.mode === mode);
+        btn.classList.toggle("btn-outline-secondary", btn.dataset.mode !== mode);
+    });
+    document.getElementById("acq-polling-section").style.display = mode === "polling" ? "" : "none";
+    document.getElementById("acq-subscription-section").style.display = mode === "subscription" ? "" : "none";
+}
+
+function updateDeadbandValueVisibility() {
+    const type = document.getElementById("acq-deadband-type").value;
+    document.getElementById("acq-deadband-value-col").style.display = type === "None" ? "none" : "";
+}
+
+async function loadAcquisition() {
+    const d = await fetchJSON("/api/opcua/acquisition");
+    const mode = d.mode || "polling";
+
+    setAcqMode(mode);
+
+    const scanRate = document.getElementById("acq-scan-rate");
+    if (scanRate) scanRate.value = d.scan_rate || "10s";
+
+    const samplingInterval = document.getElementById("acq-sampling-interval");
+    if (samplingInterval) samplingInterval.value = d.sampling_interval || "1s";
+
+    const queueSize = document.getElementById("acq-queue-size");
+    if (queueSize) queueSize.value = d.queue_size ?? 10;
+
+    const trigger = document.getElementById("acq-trigger");
+    if (trigger) trigger.value = d.trigger || "StatusValue";
+
+    const deadbandType = document.getElementById("acq-deadband-type");
+    if (deadbandType) deadbandType.value = d.deadband_type || "None";
+
+    const deadbandValue = document.getElementById("acq-deadband-value");
+    if (deadbandValue) deadbandValue.value = d.deadband_value ?? 0;
+
+    updateDeadbandValueVisibility();
+}
+
+function getAcqData() {
+    const mode = document.querySelector(".acq-mode-btn.btn-primary")?.dataset.mode || "polling";
+    return {
+        mode,
+        scan_rate: document.getElementById("acq-scan-rate")?.value.trim() || "10s",
+        sampling_interval: document.getElementById("acq-sampling-interval")?.value.trim() || "1s",
+        queue_size: parseInt(document.getElementById("acq-queue-size")?.value) || 10,
+        trigger: document.getElementById("acq-trigger")?.value || "StatusValue",
+        deadband_type: document.getElementById("acq-deadband-type")?.value || "None",
+        deadband_value: parseFloat(document.getElementById("acq-deadband-value")?.value) || 0,
+    };
+}
+
+function scheduleAcqSave() {
+    const indicator = document.getElementById("acq-save-indicator");
+    if (indicator) indicator.textContent = "Unsaved changes...";
+    clearTimeout(acqTimeout);
+    acqTimeout = setTimeout(saveAcquisition, 800);
+}
+
+async function saveAcquisition() {
+    const indicator = document.getElementById("acq-save-indicator");
+    if (indicator) indicator.textContent = "Saving...";
+    const data = await fetchJSON("/api/opcua/acquisition", { method: "POST", body: getAcqData() });
+    if (data.ok) {
+        updateConfigStatus(true);
+        if (indicator) {
+            indicator.textContent = "Saved";
+            setTimeout(() => { indicator.textContent = ""; }, 2000);
+        }
+    }
+}
 
 // ── Nodes ────────────────────────────────────────────────────────
 
@@ -64,23 +157,6 @@ function renderTable() {
             <td><code>${esc(node.identifier)}</code></td>
             <td>${esc(node.identifier_type)}</td>
             <td>
-                <select class="form-select form-select-sm" data-idx="${idx}" data-field="sampling_mode">
-                    <option value="polling" ${node.sampling_mode === "polling" ? "selected" : ""}>Polling</option>
-                    <option value="subscription" ${node.sampling_mode === "subscription" ? "selected" : ""}>Subscription</option>
-                </select>
-            </td>
-            <td><input type="text" class="form-control form-control-sm" value="${esc(node.interval || '1s')}" data-idx="${idx}" data-field="interval" style="width:5rem;"></td>
-            <td>
-                <div class="d-flex gap-1">
-                    <select class="form-select form-select-sm" data-idx="${idx}" data-field="deadband_type" style="width:6rem;">
-                        <option value="None" ${node.deadband_type === "None" ? "selected" : ""}>None</option>
-                        <option value="Absolute" ${node.deadband_type === "Absolute" ? "selected" : ""}>Absolute</option>
-                        <option value="Percent" ${node.deadband_type === "Percent" ? "selected" : ""}>Percent</option>
-                    </select>
-                    <input type="number" class="form-control form-control-sm" value="${node.deadband_value || 0}" data-idx="${idx}" data-field="deadband_value" style="width:4rem;" step="0.1">
-                </div>
-            </td>
-            <td>
                 <button class="btn btn-sm btn-outline-secondary" data-remove="${idx}" title="Remove">
                     <i class="bi bi-x"></i>
                 </button>
@@ -89,23 +165,18 @@ function renderTable() {
         tbody.appendChild(tr);
     });
 
-    // Bind change events with auto-save
-    tbody.querySelectorAll("[data-field]").forEach(el => {
+    // Name edit auto-save
+    tbody.querySelectorAll("[data-field='name']").forEach(el => {
         el.addEventListener("change", () => {
-            const idx = parseInt(el.dataset.idx);
-            const field = el.dataset.field;
-            let value = el.value;
-            if (field === "deadband_value") value = parseFloat(value) || 0;
-            nodes[idx][field] = value;
+            nodes[parseInt(el.dataset.idx)].name = el.value;
             scheduleAutoSave();
         });
     });
 
-    // Bind remove buttons
+    // Remove buttons
     tbody.querySelectorAll("[data-remove]").forEach(btn => {
         btn.addEventListener("click", () => {
-            const idx = parseInt(btn.dataset.remove);
-            nodes.splice(idx, 1);
+            nodes.splice(parseInt(btn.dataset.remove), 1);
             renderTable();
             saveNodes();
         });
@@ -127,18 +198,8 @@ async function saveNodes() {
 async function loadPublishing() {
     const data = await fetchJSON("/api/opcua/publishing");
     const mode = data.mode || "individual";
-    const interval = data.group_interval || "10s";
-
     const radio = document.querySelector(`input[name='publishing_mode'][value='${mode}']`);
     if (radio) radio.checked = true;
-
-    document.getElementById("group-interval").value = interval;
-    updateGroupIntervalVisibility();
-}
-
-function updateGroupIntervalVisibility() {
-    const isGrouped = document.getElementById("mode-grouped").checked;
-    document.getElementById("group-interval-row").style.display = isGrouped ? "" : "none";
 }
 
 function schedulePublishingSave() {
@@ -148,11 +209,7 @@ function schedulePublishingSave() {
 
 async function savePublishing() {
     const mode = document.querySelector("input[name='publishing_mode']:checked")?.value || "individual";
-    const group_interval = document.getElementById("group-interval").value.trim() || "10s";
-    const data = await fetchJSON("/api/opcua/publishing", {
-        method: "POST",
-        body: { mode, group_interval }
-    });
+    const data = await fetchJSON("/api/opcua/publishing", { method: "POST", body: { mode } });
     if (data.ok) updateConfigStatus(true);
 }
 

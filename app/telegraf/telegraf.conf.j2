@@ -14,8 +14,17 @@
 ###############################################################################
 {%- if opcua.get('enabled', true) %}
 
+{#- Compute effective OPC UA interval for polling mode and grouped mode -#}
+{%- set acq = acquisition %}
+{%- set opcua_scan = (acq.scan_rate or '10s') %}
+{%- set opcua_sample = (acq.sampling_interval or '1s') %}
+{%- set is_subscription = acq.mode == 'subscription' %}
+
 [[inputs.opcua]]
   name = "opcua"
+{%- if not is_subscription %}
+  interval = "{{ opcua_scan | toml_dq }}"
+{%- endif %}
   endpoint = "{{ opcua.endpoint | toml_dq }}"
   connect_timeout = "{{ opcua.connect_timeout | toml_dq }}"
   request_timeout = "{{ opcua.request_timeout | toml_dq }}"
@@ -41,7 +50,7 @@
   # Message format: Grouped — nodes share sampling interval, merge processor
   # combines them into a single MQTT message per cycle
   [[inputs.opcua.group]]
-    sampling_interval = "{{ publishing.group_interval | toml_dq }}"
+    sampling_interval = "{{ (opcua_sample if is_subscription else opcua_scan) | toml_dq }}"
 {%- for node in nodes %}
     [[inputs.opcua.group.nodes]]
       name = "{{ node.name | toml_dq }}"
@@ -52,18 +61,22 @@
 {%- else %}
 
   # Message format: Individual — one MQTT message per node per cycle
+  # Acquisition: {{ "Subscription" if is_subscription else "Polling" }}
 {% for node in nodes %}
   [[inputs.opcua.nodes]]
     name = "{{ node.name | toml_dq }}"
     namespace = "{{ node.namespace | toml_dq }}"
     identifier_type = "{{ node.identifier_type | toml_dq }}"
     identifier = "{{ node.identifier | toml_dq }}"
-{%- if node.get("sampling_mode") == "subscription" %}
+{%- if is_subscription %}
     [inputs.opcua.nodes.monitoring_params]
-      sampling_interval = "{{ node.get('interval', '1s') | toml_dq }}"
-{%- if node.get("deadband_type", "None") != "None" %}
-      deadband_type = "{{ node.deadband_type }}"
-      deadband_value = {{ node.deadband_value }}
+      sampling_interval = "{{ opcua_sample | toml_dq }}"
+      queue_size = {{ acq.queue_size | int }}
+      [inputs.opcua.nodes.monitoring_params.data_change_filter]
+        trigger = "{{ (acq.trigger or 'StatusValue') | toml_dq }}"
+{%- if acq.deadband_type != "None" %}
+        deadband_type = "{{ acq.deadband_type | toml_dq }}"
+        deadband_value = {{ acq.deadband_value }}
 {%- endif %}
 {%- endif %}
 {% endfor %}
@@ -143,7 +156,7 @@
 
 # Merge all opcua node metrics into a single message per flush cycle
 [[aggregators.merge]]
-  period = "{{ publishing.group_interval | toml_dq }}"
+  period = "{{ (opcua_sample if is_subscription else opcua_scan) | toml_dq }}"
   namepass = ["opcua"]
   drop_original = true
 {%- endif %}

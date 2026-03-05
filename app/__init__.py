@@ -55,6 +55,7 @@ def create_app():
             and len(cfg.get("nodes", [])) > 0,
             "modbus_ready": cfg.get("modbus", {}).get("enabled", False)
             and len(cfg.get("modbus", {}).get("registers", [])) > 0,
+            "grouped_mode": cfg.get("publishing", {}).get("mode", "individual") == "grouped",
         }
 
     @app.route("/")

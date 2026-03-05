@@ -270,6 +270,32 @@ body {
     cursor: not-allowed !important;
 }
 
+/* Main content overlay during deploy */
+.main-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 100;
+    background: rgba(var(--bs-body-bg-rgb, 18 18 18), 0.65);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: all;
+}
+
+.main-overlay-inner {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--card-bg, #1e1e1e);
+    border: 1px solid var(--border-color, #333);
+    border-radius: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary, #aaa);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+
 /* Apply button */
 .btn-apply {
     font-family: var(--font-mono);
@@ -432,7 +458,7 @@ body {
     color: var(--danger);
 }
 
-.btn-state:disabled { opacity: 0.3; cursor: not-allowed; }
+.btn-state:disabled { opacity: 1; cursor: not-allowed; }
 
 [data-theme="keepler"] .btn-state {
     border-color: rgba(0,0,0,0.1);
@@ -1025,11 +1051,16 @@ body {
 /* Horizontal arm from each input node to the vertical merge bar (animated) */
 .pf-y-arm {
     position: relative;
-    width: 40px;
+    flex: 1;
+    min-width: 20px;
     height: 20px;
-    flex-shrink: 0;
     display: flex;
     align-items: center;
+}
+
+/* Mini arm between input node and aggregator — fixed width, does not stretch */
+.pf-agg-arm {
+    flex: 0 0 20px;
 }
 
 
@@ -1104,6 +1135,30 @@ body {
 .pf-quality-bar-err  { background: var(--danger);  transition: width 0.5s; }
 
 /* MQTT node */
+/* Aggregator node — processing step between OPC UA and buffer */
+.pf-node-agg {
+    background: var(--sidebar-bg);
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+    padding: 0.6rem 0.9rem;
+}
+
+.pf-node-agg .pf-node-icon { color: #f59e0b; font-size: 0.9rem; }
+.pf-node-agg .pf-node-value { font-size: 1.5rem; line-height: 1; }
+
+/* Compact variant for dual-mode arm */
+.pf-node-agg-compact { padding: 0.35rem 0.6rem; }
+.pf-node-agg-compact .pf-node-value { font-size: 1.1rem; }
+
+/* Short connector between input and aggregator (no animated dots) */
+.pf-connector-short {
+    height: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+
 .pf-node-mqtt {
     background: var(--sidebar-bg);
     border: 1px solid var(--border-color);
@@ -1215,6 +1270,11 @@ body {
 
 .pipeline-status-badge.badge-stopped { color: var(--danger); }
 .pipeline-status-badge.badge-stopped .pipeline-status-dot { background: var(--danger); }
+
+.pipeline-status-badge.badge-idle { color: var(--text-muted); }
+.pipeline-status-badge.badge-idle .pipeline-status-dot { background: var(--text-muted); }
+.pipeline-idle .flow-dot { display: none; }
+.pipeline-idle .pf-connector-line { opacity: 0.3; }
 
 /* Pipeline Health — side-by-side layout */
 .pipeline-health-body {
@@ -1697,6 +1757,63 @@ body {
 .mqtt-actions-divider {
     border-top: 1px solid var(--border-color);
     margin: 0.25rem 0;
+}
+
+/* Demo info collapsible block */
+.demo-info-block {
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.demo-info-block summary {
+    padding: 0.35rem 0.6rem;
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.demo-info-block summary::-webkit-details-marker { display: none; }
+
+.demo-info-block[open] summary {
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.demo-info-body {
+    padding: 0.5rem 0.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.demo-info-row {
+    display: flex;
+    gap: 0.5rem;
+    line-height: 1.4;
+}
+
+.demo-info-key {
+    min-width: 80px;
+    font-weight: 500;
+    flex-shrink: 0;
+    color: var(--text-primary);
+    opacity: 0.75;
+}
+
+.demo-info-divider {
+    margin: 0.35rem 0 0.15rem;
+    font-weight: 600;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border-color);
+    padding-top: 0.35rem;
 }
 
 /* Certs chevron */
