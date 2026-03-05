@@ -1,8 +1,11 @@
 import copy
 import json
+import logging
 import os
 import threading
 from datetime import datetime, timezone
+
+logger = logging.getLogger(__name__)
 
 from app.config import DEFAULT_CONFIG
 
@@ -20,8 +23,12 @@ def load():
         path = _config_path()
         if not os.path.exists(path):
             return copy.deepcopy(DEFAULT_CONFIG)
-        with open(path, "r") as f:
-            return json.load(f)
+        try:
+            with open(path, "r") as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            logger.error("config.json is corrupted, returning defaults")
+            return copy.deepcopy(DEFAULT_CONFIG)
 
 
 def save(config):
@@ -29,9 +36,12 @@ def save(config):
         config["_meta"]["last_modified"] = datetime.now(timezone.utc).isoformat()
         path = _config_path()
         tmp_path = path + ".tmp"
-        with open(tmp_path, "w") as f:
-            json.dump(config, f, indent=2)
-        os.replace(tmp_path, path)
+        try:
+            with open(tmp_path, "w") as f:
+                json.dump(config, f, indent=2)
+            os.replace(tmp_path, path)
+        except OSError:
+            logger.error("Failed to write config.json")
 
 
 def get_section(section):

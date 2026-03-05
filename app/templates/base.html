@@ -63,7 +63,7 @@
                 </li>
                 <li class="nav-item nav-child">
                     <a class="nav-link {% if request.path == '/opcua/nodes' %}active{% endif %}" href="/opcua/nodes">
-                        <i class="bi bi-check2-square"></i> Node Selection
+                        <i class="bi bi-sliders"></i> Acquisition
                     </a>
                 </li>
                 <li class="nav-item">
@@ -146,7 +146,13 @@
         </nav>
 
         <!-- Main content -->
-        <main class="main-content flex-grow-1">
+        <main class="main-content flex-grow-1" style="position: relative;">
+            <div id="main-overlay" class="main-overlay d-none">
+                <div class="main-overlay-inner">
+                    <span class="loading-spinner me-2"></span>
+                    <span id="main-overlay-msg">Deploying config&hellip;</span>
+                </div>
+            </div>
             <div class="content-header d-flex justify-content-between align-items-center mb-4">
                 <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
                 <div class="d-flex align-items-center gap-2">
@@ -213,7 +219,13 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ui-helpers.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/nav-lock.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/agent.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/logs.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app-init.js') }}"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

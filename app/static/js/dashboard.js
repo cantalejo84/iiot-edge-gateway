@@ -2,6 +2,8 @@
 
 let lastOpcuaCount = null;
 let telegrafRunning = null;
+let nodesConfigured = 0;
+let anyInputActive = true;
 
 document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
@@ -35,8 +37,18 @@ async function refreshTelegrafRunning() {
     try {
         const d = await fetchJSON("/api/telegraf/status");
         telegrafRunning = d.ok ? d.running : null;
-        setPipelineActive(telegrafRunning === true);
+        updatePipelineStatus();
     } catch (e) {}
+}
+
+function updatePipelineStatus() {
+    if (telegrafRunning === true && anyInputActive) {
+        setPipelineState("running");
+    } else if (telegrafRunning === true && !anyInputActive) {
+        setPipelineState("idle");
+    } else {
+        setPipelineState("stopped");
+    }
 }
 
 // --- System Health ---
@@ -77,9 +89,22 @@ async function refreshTelegrafMetrics() {
         const d = await fetchJSON("/api/dashboard/telegraf-metrics");
 
         lastOpcuaCount = d.opcua_gathered;
+        if (d.nodes_configured !== undefined) nodesConfigured = d.nodes_configured;
+        if (d.any_input_active !== undefined) {
+            anyInputActive = d.any_input_active;
+            updatePipelineStatus();
+        }
 
         // OPC UA input node
         setText("p-opcua-read", formatNum(d.opcua_gathered));
+
+        // Aggregator node (only rendered in grouped mode)
+        const aggEl = document.getElementById("p-agg-grouped");
+        if (aggEl) {
+            aggEl.textContent = (nodesConfigured > 0 && d.opcua_gathered > 0)
+                ? formatNum(Math.round(d.opcua_gathered / nodesConfigured))
+                : "--";
+        }
 
         // Modbus input node
         setText("p-modbus-read", formatNum(d.modbus_gathered));
@@ -138,8 +163,15 @@ async function refreshTelegrafMetrics() {
 
         const lossEl = document.getElementById("p-loss");
         if (lossEl) {
-            const totalIn = d.opcua_gathered + d.modbus_gathered;
-            if (totalIn > 0) {
+            // In grouped mode OPC UA metrics are merged N→1, so use aggregator count
+            const isGrouped = document.getElementById("p-agg-grouped") !== null;
+            let opcuaIn = (isGrouped && nodesConfigured > 0)
+                ? Math.round(d.opcua_gathered / nodesConfigured)
+                : d.opcua_gathered;
+            // The aggregator always keeps 1 batch buffered — subtract it to avoid false positives at startup
+            if (isGrouped) opcuaIn = Math.max(0, opcuaIn - 1);
+            const totalIn = opcuaIn + d.modbus_gathered;
+            if (totalIn > 0 && d.mqtt_written > 0) {
                 const loss = Math.max(0, ((totalIn - d.mqtt_written) / totalIn) * 100);
                 lossEl.textContent = `${loss.toFixed(1)}%`;
                 lossEl.style.color = loss > 0 ? "var(--danger)" : "var(--success)";
@@ -150,7 +182,7 @@ async function refreshTelegrafMetrics() {
         }
 
         if (d.last_updated) {
-            setText("last-updated", new Date(d.last_updated * 1000).toLocaleTimeString());
+            setText("last-updated", new Date(d.last_updated * 1000).toISOString().replace("T", " ").slice(0, 19) + " UTC");
         }
     } catch (e) {}
 }
@@ -171,25 +203,32 @@ function setWidth(id, val) {
     if (el) el.style.width = val;
 }
 
-function setPipelineActive(active) {
+function setPipelineState(state) {
+    // state: "running" | "idle" | "stopped"
     const flow = document.getElementById("pipeline-flow");
     const dot = document.getElementById("pipeline-status-dot");
     const label = document.getElementById("pipeline-status-label");
     const badge = document.getElementById("pipeline-status-badge");
     if (!flow) return;
 
-    if (active) {
+    flow.classList.remove("pipeline-active", "pipeline-stopped", "pipeline-idle");
+    if (dot) dot.classList.remove("dot-running", "dot-idle");
+    if (badge) badge.classList.remove("badge-running", "badge-stopped", "badge-idle");
+
+    if (state === "running") {
         flow.classList.add("pipeline-active");
-        flow.classList.remove("pipeline-stopped");
         if (dot) dot.classList.add("dot-running");
         if (label) label.textContent = "Running";
-        if (badge) { badge.classList.add("badge-running"); badge.classList.remove("badge-stopped"); }
+        if (badge) badge.classList.add("badge-running");
+    } else if (state === "idle") {
+        flow.classList.add("pipeline-idle");
+        if (dot) dot.classList.add("dot-idle");
+        if (label) label.textContent = "Idle";
+        if (badge) badge.classList.add("badge-idle");
     } else {
-        flow.classList.remove("pipeline-active");
         flow.classList.add("pipeline-stopped");
-        if (dot) dot.classList.remove("dot-running");
         if (label) label.textContent = "Stopped";
-        if (badge) { badge.classList.remove("badge-running"); badge.classList.add("badge-stopped"); }
+        if (badge) badge.classList.add("badge-stopped");
     }
 }
 
@@ -201,12 +240,11 @@ async function refreshGatewayInfo() {
 
         document.getElementById("g-uptime").textContent = formatDuration(d.uptime_seconds);
         document.getElementById("g-nodes").textContent = d.nodes_configured;
+        nodesConfigured = d.nodes_configured || 0;
 
         const lastConfig = document.getElementById("g-last-config");
         if (d.last_config_applied) {
-            lastConfig.textContent = new Date(d.last_config_applied).toLocaleString(undefined, {
-                day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"
-            });
+            lastConfig.textContent = new Date(d.last_config_applied).toISOString().replace("T", " ").slice(0, 19) + " UTC";
         } else {
             lastConfig.textContent = "Never";
         }

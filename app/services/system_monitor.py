@@ -32,11 +32,6 @@ def get_telegraf_status():
         return {"running": False, "status_code": None}
 
 
-# Accumulators for per-cycle Telegraf counters (reset on process restart)
-_acc_lock = __import__("threading").Lock()
-_acc = {"opcua_total": 0, "modbus_total": 0, "mqtt_total": 0, "last_ts": None}
-
-
 def get_telegraf_metrics():
     from flask import current_app
 
@@ -78,15 +73,45 @@ def get_telegraf_metrics():
         lines = content.strip().split("\n")
         metrics = default.copy()
 
-        found = {
-            "opcua_gather": False,
-            "modbus_gather": False,
-            "mqtt_write": False,
-            "opcua_status": False,
+        def _parse_opcua_gather(fields, data):
+            metrics["opcua_gathered"] = fields.get("metrics_gathered", 0)
+            metrics["opcua_errors"] = fields.get("errors", 0)
+            metrics["opcua_scan_time_ms"] = round(
+                fields.get("gather_time_ns", 0) / 1_000_000, 2
+            )
+            metrics["last_updated"] = data.get("timestamp")
+
+        def _parse_modbus_gather(fields, data):
+            metrics["modbus_gathered"] = fields.get("metrics_gathered", 0)
+            metrics["modbus_errors"] = fields.get("errors", 0)
+            metrics["modbus_scan_time_ms"] = round(
+                fields.get("gather_time_ns", 0) / 1_000_000, 2
+            )
+            if not metrics.get("last_updated"):
+                metrics["last_updated"] = data.get("timestamp")
+
+        def _parse_mqtt_write(fields, data):
+            metrics["mqtt_written"] = fields.get("metrics_written", 0)
+            metrics["mqtt_dropped"] = fields.get("metrics_dropped", 0)
+            metrics["mqtt_buffer_size"] = fields.get("buffer_size", 0)
+            metrics["mqtt_buffer_limit"] = fields.get("buffer_limit", 10000)
+            metrics["mqtt_errors"] = fields.get("errors", 0)
+
+        def _parse_opcua_status(fields, data):
+            metrics["opcua_read_success"] = fields.get("read_success", 0)
+            metrics["opcua_read_error"] = fields.get("read_error", 0)
+
+        # Key: (metric_name, tag_key, tag_value) — tag_key/value are None for untagged metrics
+        parsers = {
+            ("internal_gather", "input", "opcua"): _parse_opcua_gather,
+            ("internal_gather", "input", "modbus"): _parse_modbus_gather,
+            ("internal_write", "output", "mqtt"): _parse_mqtt_write,
+            ("internal_opcua", None, None): _parse_opcua_status,
         }
+        found = set()
 
         for line in reversed(lines):
-            if all(found.values()):
+            if len(found) == len(parsers):
                 break
             try:
                 data = json.loads(line)
@@ -94,68 +119,20 @@ def get_telegraf_metrics():
                 tags = data.get("tags", {})
                 fields = data.get("fields", {})
 
-                if (
-                    name == "internal_gather"
-                    and tags.get("input") == "opcua"
-                    and not found["opcua_gather"]
-                ):
-                    metrics["opcua_errors"] = fields.get("errors", 0)
-                    metrics["opcua_scan_time_ms"] = round(
-                        fields.get("gather_time_ns", 0) / 1_000_000, 2
-                    )
-                    metrics["last_updated"] = data.get("timestamp")
-                    found["opcua_gather"] = True
-
-                elif (
-                    name == "internal_gather"
-                    and tags.get("input") == "modbus"
-                    and not found["modbus_gather"]
-                ):
-                    metrics["modbus_errors"] = fields.get("errors", 0)
-                    metrics["modbus_scan_time_ms"] = round(
-                        fields.get("gather_time_ns", 0) / 1_000_000, 2
-                    )
-                    metrics["_cycle_modbus"] = fields.get("metrics_gathered", 0)
-                    if not metrics.get("last_updated"):
-                        metrics["last_updated"] = data.get("timestamp")
-                    found["modbus_gather"] = True
-
-                elif (
-                    name == "internal_write"
-                    and tags.get("output") == "mqtt"
-                    and not found["mqtt_write"]
-                ):
-                    metrics["_cycle_mqtt_added"] = fields.get("metrics_added", 0)
-                    metrics["_cycle_mqtt"] = fields.get("metrics_written", 0)
-                    metrics["mqtt_dropped"] = fields.get("metrics_dropped", 0)
-                    metrics["mqtt_buffer_size"] = fields.get("buffer_size", 0)
-                    metrics["mqtt_buffer_limit"] = fields.get("buffer_limit", 10000)
-                    metrics["mqtt_errors"] = fields.get("errors", 0)
-                    found["mqtt_write"] = True
-
-                elif name == "internal_opcua" and not found["opcua_status"]:
-                    metrics["opcua_read_success"] = fields.get("read_success", 0)
-                    metrics["opcua_read_error"] = fields.get("read_error", 0)
-                    found["opcua_status"] = True
+                for key, parser_fn in parsers.items():
+                    if key in found:
+                        continue
+                    metric_name, tag_key, tag_value = key
+                    if name != metric_name:
+                        continue
+                    if tag_key and tags.get(tag_key) != tag_value:
+                        continue
+                    parser_fn(fields, data)
+                    found.add(key)
 
             except (json.JSONDecodeError, KeyError):
                 continue
 
-        # Accumulate per-cycle counts into running totals
-        with _acc_lock:
-            ts = metrics.get("last_updated")
-            if ts and ts != _acc["last_ts"]:
-                _acc["opcua_total"] += metrics.get("_cycle_mqtt_added", 0)
-                _acc["modbus_total"] += metrics.get("_cycle_modbus", 0)
-                _acc["mqtt_total"] += metrics.get("_cycle_mqtt", 0)
-                _acc["last_ts"] = ts
-            metrics["opcua_gathered"] = _acc["opcua_total"]
-            metrics["modbus_gathered"] = _acc["modbus_total"]
-            metrics["mqtt_written"] = _acc["mqtt_total"]
-
-        metrics.pop("_cycle_mqtt_added", None)
-        metrics.pop("_cycle_modbus", None)
-        metrics.pop("_cycle_mqtt", None)
         return metrics
     except Exception:
         return default
@@ -242,3 +219,20 @@ def get_gateway_info():
         "nodes_configured": len(nodes),
         "containers": get_container_status(),
     }
+
+
+def get_telegraf_version():
+    try:
+        import docker
+
+        client = docker.from_env()
+        containers = client.containers.list(all=True, filters={"name": "telegraf"})
+        for c in containers:
+            for tag in c.image.tags or []:
+                if ":" in tag:
+                    ver = tag.split(":")[-1]
+                    if ver and ver != "latest":
+                        return ver
+    except Exception:
+        pass
+    return None
