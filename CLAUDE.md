@@ -52,7 +52,7 @@ Gateway runs on port **8050** (`localhost:8050`).
 - `telegraf_config.py` -- Renders `app/telegraf/telegraf.conf.j2` with Jinja2
 - `system_monitor.py` -- CPU/RAM/Disk/Network via psutil, Telegraf health via HTTP, pipeline metrics from shared JSON file, container status via Docker SDK
 
-**Frontend:** Bootstrap 5 CDN + vanilla JS. Each page has a dedicated JS file in `app/static/js/`. Templates use Jinja2 server-side rendering. All config screens use **auto-save with debounce** (no Save buttons). Shared helpers in `app/static/js/common.js` (`fetchJSON`, `setLoading`, `showAlert`, `updateConfigStatus`).
+**Frontend:** Bootstrap 5 CDN + vanilla JS. Each page has a dedicated JS file in `app/static/js/`. Templates use Jinja2 server-side rendering. All config screens use **auto-save with debounce** (no Save buttons). Shared helpers split across 7 global modules loaded in `base.html`: `api.js` (fetchJSON with try/catch), `ui-helpers.js` (showAlert, setLoading, updateConfigStatus), `nav-lock.js` (lockNav/unlockNav/lockMain/unlockMain + 30s safety timeout), `agent.js` (setAgentUI, startAgent, stopAgent, applyConfig), `logs.js` (renderLogs, updateLogBadge, loadTelegrafLogs, pollLogBadge), `theme.js` (applyTheme), `app-init.js` (DOMContentLoaded wiring). All functions are global — no ES modules.
 
 **Sidebar navigation:** Parent items: Dashboard, OPC UA, Modbus TCP, MQTT. Nav-children: OPC UA → Connection, Browse Nodes, **Acquisition** (icon `bi-sliders`, was "Node Selection"). Modbus TCP → Connection. MQTT → Connection, View Messages. All use `.nav-child` class (indented with left border). Sections: Dashboard | INPUT | OUTPUT | SYSTEM | STATE | (bottom) Deploy config button + status badge. Parent nav item active when `request.path.startswith('/opcua')` or `.startswith('/mqtt')` or `.startswith('/modbus')`. Branding shows "IIoT Gateway" (default theme) or "K-Gateway" (Keepler theme) with "powered by Telegraf" subtitle.
 
@@ -117,7 +117,7 @@ In `telegraf.conf.j2`: variables `acq`, `opcua_scan`, `opcua_sample`, `is_subscr
 
 **Telegraf entrypoint (docker-compose.yml):** Container waits for `telegraf.conf` to exist before starting (loop with `sleep 3`), then runs a retry loop with `sleep 10` on crash. Telegraf volume is mounted as a directory (`./telegraf:/etc/telegraf-conf:ro`) — NOT as a file — to avoid Docker creating it as a directory on fresh installs.
 
-**Telegraf logs endpoint:** `GET /api/telegraf/logs` reads Docker container logs via SDK (`container.logs(tail=50)`). Exposed in a Telegraf tab inside the Logs modal (`common.js`: `loadTelegrafLogs()`). After deploy, `telegraf.py` sleeps 3s then scans logs for `E!` lines to surface config parse errors in the event log.
+**Telegraf logs endpoint:** `GET /api/telegraf/logs` reads Docker container logs via SDK (`container.logs(tail=50)`). Exposed in a Telegraf tab inside the Logs modal (`logs.js`: `loadTelegrafLogs()`). After deploy, `telegraf.py` sleeps 3s then calls `_get_telegraf_config_error(since=deploy_time)` which filters logs by: (1) Docker SDK `since=` param to exclude pre-deploy lines, (2) keyword filter (`config`, `toml`, `parse`, `invalid`, etc.) to ignore runtime E! errors like OPC UA session drops. Event log message: "Telegraf config error detected".
 
 **MQTT Live Tail:** `MqttTailSubscriber` is a module-level singleton in `mqtt_client.py` with a background paho-mqtt thread and `deque(maxlen=5)`. Converts Telegraf topic templates to MQTT wildcards via regex (`{{ .Hostname }}` -> `+`). Auto-stops after 10 seconds in the frontend.
 
