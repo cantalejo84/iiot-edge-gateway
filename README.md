@@ -12,8 +12,8 @@ Industrial machines speak OPC UA or Modbus. Cloud platforms speak MQTT. IIoT Edg
 
 ```
 OPC UA Machines  ─┐
-                   ├──►  IIoT Edge Gateway  ──►  AWS IoT Core
-Modbus Devices   ─┘       (Telegraf agent)  ──►  Azure IoT Hub
+                  ├──►  IIoT Edge Gateway   ──►  AWS IoT Core
+Modbus Devices   ─┘      (Telegraf agent)   ──►  Azure IoT Hub
                                             ──►  Any MQTT broker
 ```
 
