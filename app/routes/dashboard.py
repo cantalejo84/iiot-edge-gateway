@@ -9,6 +9,7 @@ from app.services.system_monitor import (
     get_telegraf_metrics,
     get_telegraf_status,
 )
+from datetime import datetime, timezone
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
@@ -48,6 +49,17 @@ def telegraf_status():
 @dashboard_bp.route("/api/dashboard/telegraf-metrics", methods=["GET"])
 def telegraf_metrics():
     metrics = get_telegraf_metrics()
+
+    if metrics.pop("process_crash_detected", False):
+        event_log.log(
+            "error", "telegraf",
+            "Process crash detected — data gap in collection",
+            detail="Telegraf restarted inside the container (entrypoint loop). Counters reset.",
+        )
+        config_store.record_restart(
+            datetime.now(timezone.utc).isoformat(), "crash"
+        )
+
     cfg = config_store.load()
     metrics["nodes_configured"] = len(cfg.get("nodes", []))
     # Zero out stale metrics for disabled inputs

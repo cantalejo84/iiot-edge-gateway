@@ -10,7 +10,11 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from app.services.system_monitor import get_telegraf_metrics
+from app.services.system_monitor import (
+    _compute_unexpected_restart,
+    get_telegraf_metrics,
+    reset_crash_detection,
+)
 
 # ---------------------------------------------------------------------------
 # NDJSON fixture helpers
@@ -211,3 +215,119 @@ class TestGetTelegrafMetricsMalformed:
         d = get_telegraf_metrics()
         assert d["opcua_gathered"] == 0
         assert d["mqtt_written"] == 0
+
+
+# ---------------------------------------------------------------------------
+# _compute_unexpected_restart()
+# ---------------------------------------------------------------------------
+
+
+class TestComputeUnexpectedRestart:
+
+    def test_same_timestamp_returns_none(self):
+        ts = "2026-03-07T10:30:00.123456789Z"
+        assert _compute_unexpected_restart(ts, ts) is None
+
+    def test_different_time_returns_current(self):
+        current = "2026-03-07T12:00:00.000000000Z"
+        deploy  = "2026-03-07T10:30:00.123456789Z"
+        assert _compute_unexpected_restart(current, deploy) == current
+
+    def test_none_current_returns_none(self):
+        assert _compute_unexpected_restart(None, "2026-03-07T10:30:00Z") is None
+
+    def test_none_deploy_returns_none(self):
+        # No baseline → cannot determine unexpected restart
+        assert _compute_unexpected_restart("2026-03-07T10:30:00Z", None) is None
+
+    def test_both_none_returns_none(self):
+        assert _compute_unexpected_restart(None, None) is None
+
+    def test_same_second_different_subseconds_treated_as_same(self):
+        # Sub-second differences are ignored; same container start
+        ts1 = "2026-03-07T10:30:00.100000000Z"
+        ts2 = "2026-03-07T10:30:00.999999999Z"
+        assert _compute_unexpected_restart(ts1, ts2) is None
+
+    def test_one_second_apart_detected_as_restart(self):
+        current = "2026-03-07T10:30:01.000000000Z"
+        deploy  = "2026-03-07T10:30:00.999999999Z"
+        assert _compute_unexpected_restart(current, deploy) == current
+
+
+# ---------------------------------------------------------------------------
+# Crash detection (_prev_gathered logic)
+# ---------------------------------------------------------------------------
+
+
+class TestCrashDetection:
+    """Verify process_crash_detected flag in get_telegraf_metrics()."""
+
+    def setup_method(self):
+        # Isolate each test from module-level state
+        reset_crash_detection()
+
+    def test_no_previous_state_no_crash(self, app_ctx):
+        """First call: no baseline, never a crash."""
+        _write_metrics(app_ctx, _gather("opcua", metrics_gathered=10))
+        d = get_telegraf_metrics()
+        assert d["process_crash_detected"] is False
+
+    def test_counter_increasing_no_crash(self, app_ctx):
+        """Two calls with increasing counter: normal operation."""
+        _write_metrics(app_ctx, _gather("opcua", metrics_gathered=10))
+        get_telegraf_metrics()  # seed baseline
+
+        _write_metrics(app_ctx, _gather("opcua", metrics_gathered=20))
+        d = get_telegraf_metrics()
+        assert d["process_crash_detected"] is False
+
+    def test_counter_reset_triggers_crash(self, app_ctx):
+        """Counter drops from high value to near-zero: crash detected."""
+        _write_metrics(app_ctx, _gather("opcua", metrics_gathered=50))
+        get_telegraf_metrics()  # seed baseline with prev=50
+
+        _write_metrics(app_ctx, _gather("opcua", metrics_gathered=2))
+        d = get_telegraf_metrics()
+        assert d["process_crash_detected"] is True
+
+    def test_counter_reset_below_threshold_no_crash(self, app_ctx):
+        """Previous value <= 5: too small to distinguish restart from noise."""
+        _write_metrics(app_ctx, _gather("opcua", metrics_gathered=5))
+        get_telegraf_metrics()  # seed baseline with prev=5
+
+        _write_metrics(app_ctx, _gather("opcua", metrics_gathered=0))
+        d = get_telegraf_metrics()
+        assert d["process_crash_detected"] is False
+
+    def test_reset_crash_detection_prevents_false_positive(self, app_ctx):
+        """After reset_crash_detection(), next poll with low counter is not a crash."""
+        _write_metrics(app_ctx, _gather("opcua", metrics_gathered=50))
+        get_telegraf_metrics()  # seed baseline
+
+        reset_crash_detection()  # simulates intentional restart (deploy / manual start)
+
+        _write_metrics(app_ctx, _gather("opcua", metrics_gathered=1))
+        d = get_telegraf_metrics()
+        assert d["process_crash_detected"] is False
+
+    def test_modbus_crash_detected(self, app_ctx):
+        """Crash detected via modbus counter reset, not opcua."""
+        _write_metrics(app_ctx, _gather("modbus", metrics_gathered=30))
+        get_telegraf_metrics()  # seed baseline
+
+        _write_metrics(app_ctx, _gather("modbus", metrics_gathered=1))
+        d = get_telegraf_metrics()
+        assert d["process_crash_detected"] is True
+
+    def test_crash_flag_clears_on_next_poll(self, app_ctx):
+        """After crash detected, subsequent normal poll reports no crash."""
+        _write_metrics(app_ctx, _gather("opcua", metrics_gathered=50))
+        get_telegraf_metrics()
+
+        _write_metrics(app_ctx, _gather("opcua", metrics_gathered=1))
+        get_telegraf_metrics()  # crash detected here — baseline now set to 1
+
+        _write_metrics(app_ctx, _gather("opcua", metrics_gathered=2))
+        d = get_telegraf_metrics()
+        assert d["process_crash_detected"] is False

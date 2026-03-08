@@ -87,6 +87,28 @@ def get_applied_section(section):
     return config.get(section, {})
 
 
+def record_restart(started_at_iso, reason):
+    """Store the last Telegraf container restart with its cause.
+
+    reason: "deploy" | "manual" | "unplanned"
+    Does NOT touch last_modified to avoid marking config as dirty.
+    """
+    with _lock:
+        path = _config_path()
+        if not os.path.exists(path):
+            return
+        try:
+            with open(path, "r") as f:
+                config = json.load(f)
+            config["_meta"]["last_restart"] = {"started_at": started_at_iso, "reason": reason}
+            tmp_path = path + ".tmp"
+            with open(tmp_path, "w") as f:
+                json.dump(config, f, indent=2)
+            os.replace(tmp_path, path)
+        except Exception:
+            logger.error("Failed to record telegraf restart")
+
+
 def is_dirty():
     config = load()
     meta = config.get("_meta", {})

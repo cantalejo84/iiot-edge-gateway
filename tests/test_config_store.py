@@ -198,3 +198,65 @@ class TestSaveLoad:
         cfg = config_store.load()
         config_store.save(cfg)
         assert not (app_ctx / "config.json.tmp").exists()
+
+
+# ---------------------------------------------------------------------------
+# record_telegraf_start()
+# ---------------------------------------------------------------------------
+
+
+class TestRecordRestart:
+
+    def test_stores_started_at_and_reason(self, app_ctx):
+        cfg = _make_config()
+        _write_config(app_ctx / "config.json", cfg)
+
+        config_store.record_restart("2026-03-07T10:30:00.123456789Z", "deploy")
+
+        meta = config_store.load()["_meta"]
+        assert meta["last_restart"]["started_at"] == "2026-03-07T10:30:00.123456789Z"
+        assert meta["last_restart"]["reason"] == "deploy"
+
+    def test_all_reasons_accepted(self, app_ctx):
+        cfg = _make_config()
+        _write_config(app_ctx / "config.json", cfg)
+
+        for reason in ("deploy", "manual", "unplanned"):
+            config_store.record_restart("2026-03-07T10:30:00Z", reason)
+            assert config_store.load()["_meta"]["last_restart"]["reason"] == reason
+
+    def test_overwrites_previous_value(self, app_ctx):
+        cfg = _make_config()
+        cfg["_meta"]["last_restart"] = {"started_at": "2026-01-01T00:00:00Z", "reason": "deploy"}
+        _write_config(app_ctx / "config.json", cfg)
+
+        config_store.record_restart("2026-03-07T10:30:00Z", "unplanned")
+
+        last = config_store.load()["_meta"]["last_restart"]
+        assert last["started_at"] == "2026-03-07T10:30:00Z"
+        assert last["reason"] == "unplanned"
+
+    def test_does_not_bump_last_modified(self, app_ctx):
+        """Recording a restart must NOT make config dirty."""
+        ts = "2024-01-01T12:00:00Z"
+        cfg = _make_config(last_modified=ts, last_applied=ts)
+        _write_config(app_ctx / "config.json", cfg)
+
+        config_store.record_restart("2026-03-07T10:30:00Z", "manual")
+
+        assert config_store.is_dirty() is False
+        assert config_store.load()["_meta"]["last_modified"] == ts
+
+    def test_does_not_affect_other_meta_fields(self, app_ctx):
+        ts = "2024-01-01T12:00:00Z"
+        cfg = _make_config(last_modified=ts, last_applied=ts)
+        _write_config(app_ctx / "config.json", cfg)
+
+        config_store.record_restart("2026-03-07T10:30:00Z", "deploy")
+
+        meta = config_store.load()["_meta"]
+        assert meta["last_applied"] == ts
+        assert meta["last_modified"] == ts
+
+    def test_no_file_does_not_crash(self, app_ctx):
+        config_store.record_restart("2026-03-07T10:30:00Z", "manual")  # should not raise

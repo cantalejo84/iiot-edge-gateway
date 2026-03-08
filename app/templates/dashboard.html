@@ -332,24 +332,24 @@
                 <div class="gw-meta-row">
                     <div class="gw-meta-item">
                         <div class="gw-meta-label">
-                            Online for
-                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Time since the gateway container was last started."></i>
+                            Telegraf running
+                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Time since the Telegraf container was last started."></i>
                         </div>
-                        <div class="gw-meta-value" id="g-uptime">--</div>
+                        <div class="gw-meta-value" id="g-telegraf-uptime">--</div>
                     </div>
                     <div class="gw-meta-item">
                         <div class="gw-meta-label">
-                            Nodes configured
-                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="OPC UA nodes selected for data collection."></i>
-                        </div>
-                        <div class="gw-meta-value" id="g-nodes">--</div>
-                    </div>
-                    <div class="gw-meta-item">
-                        <div class="gw-meta-label">
-                            Last config applied
-                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="When the Telegraf configuration was last generated and applied."></i>
+                            Last Deploy Config
+                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="When the Telegraf configuration was last generated and deployed."></i>
                         </div>
                         <div class="gw-meta-value" id="g-last-config">--</div>
+                    </div>
+                    <div class="gw-meta-item">
+                        <div class="gw-meta-label">
+                            Last restart
+                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="When Telegraf last restarted and why: Deploy (config applied), Manual (sidebar button), or ⚠ Unplanned (machine reboot or external event)."></i>
+                        </div>
+                        <div class="gw-meta-value" id="g-last-restart">--</div>
                     </div>
                 </div>
 

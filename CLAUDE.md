@@ -96,7 +96,7 @@ In `telegraf.conf.j2`: macro `reg_addrs(addr, data_type)` computes the correct a
 - `internal_write` (output=mqtt): `metrics_added` → OPC UA Read (published to MQTT), `metrics_written` → MQTT Send (confirmed by broker), buffer_size, mqtt_dropped, mqtt_errors
 - `internal_opcua`: read_success/read_error (true cumulative Telegraf counters, 1 per gather batch)
 
-`metrics_added` and `metrics_written` are per-cycle counts, accumulated in memory via module-level `_acc` dict in `system_monitor.py` (resets on Flask restart). New timestamp in the file triggers accumulation.
+`metrics_gathered` and `metrics_written` are **cumulative counters** since Telegraf started (in-memory in Telegraf, reset to 0 on restart). Shown raw from NDJSON — no Flask accumulation. Low numbers after long uptime = slow scan rate, not a bug.
 
 **Telegraf TLS config:** Only include TLS cert paths in `telegraf.conf.j2` when endpoint uses `mqtts://` or `ssl://`. Mixing TLS certs with plain `mqtt://` causes Telegraf to crash with EOF.
 
@@ -149,7 +149,7 @@ In `telegraf.conf.j2`: variables `acq`, `opcua_scan`, `opcua_sample`, `is_subscr
 3-section dashboard with 5-second auto-refresh:
 1. **Pipeline Health** -- Side-by-side layout (`.pipeline-health-body`): left column (`.pipeline-anim-col`, `border-right`) contains the flow animation; right column (`.pipeline-metrics-col`) contains vertical metric blocks. Flow animation: dual-input mode (`.pipeline-dual`) uses Y-fork — `pf-y-section` with two `pf-y-row` divs, each with a `pf-y-arm`, and a JS-positioned `pf-y-vbar`. `positionForkBar()` in `dashboard.js` sets the vertical bar height via `getBoundingClientRect()`. No pulse ring animation. Metric blocks (`.pm-block`): one per source, each with a `.pm-block-header` (colored bottom border via `currentColor`) and a `dash-grid dash-grid-metrics` grid. Sources: OPC UA (accent), Modbus (#b8860b), Output (#34d399). Status dots (`.stat-dot`) on error metrics: green if 0, red pulsing if >0, updated via `setDot(id, isOk)` in `dashboard.js`.
 2. **System Health** -- CPU, Memory, Disk, Network I/O in 4-column grid with progress bars.
-3. **Gateway Info** -- Uptime, nodes configured, last config applied, component status (all containers with running/stopped indicators + start/stop buttons for demo containers).
+3. **Gateway Info** -- Component status (all containers) + 3 metrics: **Telegraf running** (container uptime via Docker `State.StartedAt`), **Last Deploy Config** (`_meta.last_applied`), **Last restart** (`_meta.last_restart = {started_at, reason}` with badge Deploy/Manual/⚠ Unplanned). Unplanned restarts auto-detected in `get_gateway_info()` by comparing Docker `started_at` vs stored baseline; persisted immediately via `config_store.record_restart()`. Deploy sets reason="deploy", sidebar Start sets reason="manual" (after sleep 2s). `_compute_unexpected_restart(current, last)` is a pure function for testability.
 
 Dashboard container start/stop: `POST /api/dashboard/container/<service>/start` and `/stop`. Only `DEMO_SERVICES = {"opcua-demo-server", "mosquitto"}` are allowed (returns 403 otherwise). Button click → disable button → call API → `refreshGatewayInfo()`.
 

@@ -32,6 +32,18 @@ def get_telegraf_status():
         return {"running": False, "status_code": None}
 
 
+# Module-level state for detecting Telegraf process crashes.
+# Cleared by reset_crash_detection() after any intentional restart (deploy / manual start).
+_prev_gathered: dict = {}
+
+
+def reset_crash_detection():
+    """Clear the previous-gathered baseline. Call after any intentional Telegraf restart
+    so the next metrics poll does not misread the counter reset as a crash."""
+    global _prev_gathered
+    _prev_gathered = {}
+
+
 def get_telegraf_metrics():
     from flask import current_app
 
@@ -133,9 +145,65 @@ def get_telegraf_metrics():
             except (json.JSONDecodeError, KeyError):
                 continue
 
+        # Crash detection: a counter decreasing from a non-trivial value means
+        # the Telegraf process restarted inside the container (entrypoint loop).
+        global _prev_gathered
+        crash_detected = False
+        for key in ("opcua_gathered", "modbus_gathered"):
+            current = metrics[key]
+            prev = _prev_gathered.get(key)
+            if prev is not None and prev > 5 and current < prev:
+                crash_detected = True
+            _prev_gathered[key] = current
+        metrics["process_crash_detected"] = crash_detected
+
         return metrics
     except Exception:
         return default
+
+
+def _get_telegraf_container_info():
+    """Return (started_at_iso, uptime_seconds) for the Telegraf container.
+
+    started_at_iso is the raw Docker timestamp string (e.g. "2026-03-07T10:30:00.123Z").
+    uptime_seconds is None if the container is not running or Docker is unavailable.
+    Returns (None, None) on any error.
+    """
+    try:
+        import docker
+        from datetime import datetime, timezone
+
+        client = docker.from_env()
+        containers = client.containers.list(all=True, filters={"name": "telegraf"})
+        if not containers:
+            return None, None
+        c = containers[0]
+        c.reload()
+        started_at = c.attrs["State"]["StartedAt"]  # e.g. "2026-03-07T10:30:00.123456789Z"
+        if c.status != "running":
+            return started_at, None
+        # Parse to second precision — strip sub-second portion
+        dt_str = started_at[:19]  # "2026-03-07T10:30:00"
+        start_dt = datetime.strptime(dt_str, "%Y-%m-%dT%H:%M:%S").replace(
+            tzinfo=timezone.utc
+        )
+        uptime = int(time.time() - start_dt.timestamp())
+        return started_at, uptime
+    except Exception:
+        return None, None
+
+
+def _compute_unexpected_restart(current_started_at, last_deploy_start):
+    """Return current_started_at if Telegraf restarted after the last deploy, else None.
+
+    Compares to second precision to tolerate sub-second differences in Docker timestamps.
+    Returns None when either argument is missing (no baseline to compare against).
+    """
+    if not current_started_at or not last_deploy_start:
+        return None
+    if current_started_at[:19] != last_deploy_start[:19]:
+        return current_started_at
+    return None
 
 
 def get_container_status():
@@ -205,17 +273,22 @@ def get_container_status():
 def get_gateway_info():
     from app.services import config_store
 
-    # Uptime: time since process start (inside container = container uptime)
-    uptime_seconds = int(time.time() - psutil.boot_time())
-
-    # Config info
     config = config_store.load()
     meta = config.get("_meta", {})
     nodes = config.get("nodes", [])
 
+    telegraf_started_at, telegraf_uptime_seconds = _get_telegraf_container_info()
+
+    last_restart = meta.get("last_restart", {})
+    # Auto-detect unplanned restart: Telegraf started at a different time than recorded
+    if _compute_unexpected_restart(telegraf_started_at, last_restart.get("started_at")):
+        config_store.record_restart(telegraf_started_at, "unplanned")
+        last_restart = {"started_at": telegraf_started_at, "reason": "unplanned"}
+
     return {
-        "uptime_seconds": uptime_seconds,
+        "telegraf_uptime_seconds": telegraf_uptime_seconds,
         "last_config_applied": meta.get("last_applied"),
+        "last_restart": last_restart,
         "nodes_configured": len(nodes),
         "containers": get_container_status(),
     }

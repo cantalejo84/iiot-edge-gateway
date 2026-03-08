@@ -238,15 +238,35 @@ async function refreshGatewayInfo() {
     try {
         const d = await fetchJSON("/api/dashboard/gateway-info");
 
-        document.getElementById("g-uptime").textContent = formatDuration(d.uptime_seconds);
-        document.getElementById("g-nodes").textContent = d.nodes_configured;
         nodesConfigured = d.nodes_configured || 0;
 
+        setText("g-telegraf-uptime",
+            d.telegraf_uptime_seconds != null ? formatDuration(d.telegraf_uptime_seconds) : "--"
+        );
+
         const lastConfig = document.getElementById("g-last-config");
-        if (d.last_config_applied) {
-            lastConfig.textContent = new Date(d.last_config_applied).toISOString().replace("T", " ").slice(0, 19) + " UTC";
-        } else {
-            lastConfig.textContent = "Never";
+        if (lastConfig) {
+            lastConfig.textContent = d.last_config_applied
+                ? new Date(d.last_config_applied).toISOString().replace("T", " ").slice(0, 19) + " UTC"
+                : "Never";
+        }
+
+        const lastRestart = document.getElementById("g-last-restart");
+        if (lastRestart) {
+            const r = d.last_restart;
+            if (r && r.started_at) {
+                const ts = new Date(r.started_at).toISOString().replace("T", " ").slice(0, 19) + " UTC";
+                const badges = {
+                    deploy:    { label: "Deploy",      cls: "restart-deploy" },
+                    manual:    { label: "Manual",      cls: "restart-manual" },
+                    unplanned: { label: "⚠ Unplanned", cls: "restart-unplanned" },
+                    crash:     { label: "⚠ Crash",     cls: "restart-crash" },
+                };
+                const b = badges[r.reason] || { label: r.reason, cls: "restart-manual" };
+                lastRestart.innerHTML = `${ts} <span class="restart-badge ${b.cls}">${b.label}</span>`;
+            } else {
+                lastRestart.textContent = "--";
+            }
         }
 
         const list = document.getElementById("g-containers");
