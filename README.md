@@ -4,20 +4,12 @@
 
 IIoT Edge Gateway is a self-hosted web application that bridges industrial equipment (OPC UA and Modbus TCP) with cloud IoT platforms. Configure your data pipeline through a clean web UI, and let [Telegraf](https://www.influxdata.com/time-series-platform/telegraf/) handle the heavy lifting.
 
----
-
-## What it does
-
-Industrial machines speak OPC UA or Modbus. Cloud platforms speak MQTT. IIoT Edge Gateway sits in the middle:
-
 ```
 OPC UA Machines  ─┐
                   ├──►  IIoT Edge Gateway   ──►  AWS IoT Core
 Modbus Devices   ─┘      (Telegraf agent)   ──►  Azure IoT Hub
                                             ──►  Any MQTT broker
 ```
-
-You configure your inputs (OPC UA nodes or Modbus registers), set your cloud endpoint, and deploy. The gateway generates and manages the Telegraf configuration automatically.
 
 ![IIoT Edge Gateway Dashboard](screenshots/dashboard.png)
 
@@ -67,18 +59,34 @@ Open **http://localhost:8050** in your browser.
 
 > Demo servers for OPC UA and Modbus TCP are included, plus a Mosquitto MQTT broker. No external services needed to try it out.
 
-### Available releases
-
-| Version | Notes |
-|---|---|
-| `v0.2.0` | Modbus TCP, Acquisition Mode (Polling/Subscription), Configuration page |
-| `v0.1.0` | Initial release — OPC UA + MQTT |
-
 ---
 
-## Modbus TCP
+## User Guide
 
-Go to **INPUT → Modbus TCP** in the sidebar. Enter the device controller address (`host:port`, default port 502), slave ID, and add your registers:
+### 1 — Connect your OPC UA server
+
+Go to **INPUT → OPC UA → Connection** and enter your server endpoint:
+
+```
+opc.tcp://your-plc-or-scada:4840
+```
+
+Supports Anonymous, Username/Password, and X.509 Certificate authentication. Use **Use Demo Server** to auto-fill with the built-in OPC UA simulator.
+
+### 2 — Browse and select variables
+
+Use **Browse Nodes** to navigate the address space of your machine. Click any variable node to inspect it, then add it to your selection.
+
+In **Acquisition**, choose between two collection modes:
+
+- **Polling** — Telegraf reads all nodes on a fixed interval (e.g. every 30 s)
+- **Subscription** — The OPC UA server pushes changes as they happen (event-driven, lower latency)
+
+You can also configure the **Message Format**: send each variable as an individual message, or group all variables into a single timestamped payload per cycle.
+
+### 3 — Connect your Modbus TCP devices
+
+Go to **INPUT → Modbus TCP → Connection** and enter the device address (`host:port`, default port 502) and slave ID. Then add your registers:
 
 | Field | Description |
 |---|---|
@@ -90,9 +98,66 @@ Go to **INPUT → Modbus TCP** in the sidebar. Enter the device controller addre
 
 Multi-register types (`UINT32`, `INT32`, `FLOAT32`, `FLOAT64`) occupy 2–4 consecutive registers — make sure addresses don't overlap.
 
-Use the **Use Demo Server** button to auto-fill with the built-in Modbus simulator and a set of example registers (temperature, pressure, motor speed, voltage, current).
+Use **Use Demo Server** to auto-fill with the built-in Modbus simulator and a set of example registers (temperature, pressure, motor speed, voltage, current).
 
-## Updating
+> OPC UA and Modbus TCP can run simultaneously. Both inputs are merged into a single MQTT stream.
+
+### 4 — Configure your MQTT output
+
+Go to **OUTPUT → MQTT → Connection** and enter your broker endpoint:
+
+| Platform | Endpoint format |
+|---|---|
+| AWS IoT Core | `mqtts://xxxx-ats.iot.eu-west-1.amazonaws.com:8883` |
+| Azure IoT Hub | `mqtts://your-hub.azure-devices.net:8883` |
+| Generic broker | `mqtt://your-broker:1883` |
+
+Configure the topic pattern, QoS level, and data format (JSON or InfluxDB Line Protocol). Upload your TLS certificates in the collapsible **TLS Certificates** section if your broker requires them.
+
+Use the **Demo** button to quick-fill with the built-in Mosquitto broker.
+
+### 5 — Deploy
+
+Click **Deploy config** in the sidebar. The gateway generates `telegraf.conf` from your current configuration and restarts the Telegraf agent automatically. A status badge below the button shows whether the running config is in sync with your latest settings.
+
+### 6 — Monitor the Dashboard
+
+The Dashboard provides a live view of your data pipeline:
+
+- **Pipeline Health** — Data flow from each input source through to MQTT delivery, with per-cycle message counts and error indicators
+- **System Health** — CPU, memory, disk, and network I/O of the gateway host
+- **Gateway Info** — Container status, Telegraf uptime, last deploy time, and restart history
+
+---
+
+## Integrations
+
+### AWS IoT Core
+
+Upload your device certificate, CA, and private key in the TLS section. The gateway auto-generates a scoped IAM policy based on your topic pattern — paste it directly into the AWS console.
+
+### Azure IoT Hub
+
+The gateway auto-generates the required MQTT username (`{hub}.azure-devices.net/{device_id}/?api-version=2021-04-12`) and the correct topic format (`devices/{device_id}/messages/events/`). Supports both SAS token and X.509 certificate authentication.
+
+### Generic MQTT Broker
+
+Standard MQTT (1883) and MQTTS (8883) supported. Compatible with Mosquitto, HiveMQ, EMQX, and any MQTT 3.1.1-compliant broker.
+
+---
+
+## Releases
+
+| Version | Notes |
+|---|---|
+| `v0.2.0` | Modbus TCP, Acquisition Mode (Polling/Subscription), Configuration page |
+| `v0.1.0` | Initial release — OPC UA + MQTT |
+
+---
+
+## Operations
+
+### Updating
 
 To update to a new release on a running server:
 
@@ -115,14 +180,12 @@ docker compose up --build -d
 
 Your configuration data (`data/config.json`, certificates) and the running Telegraf agent are not affected by a gateway-only rebuild.
 
----
-
-## Uninstall / Remove everything
+### Uninstall
 
 To completely remove the application, all containers, images, volumes, and configuration data:
 
 ```bash
-# Stop and remove containers, networks and volumes (metrics data)
+# Stop and remove containers, networks and volumes
 docker compose down -v
 
 # Remove the Docker images built for this project
@@ -135,77 +198,7 @@ rm -rf data/ telegraf/telegraf.conf
 cd .. && rm -rf iiot-edge-gateway
 ```
 
-> **Note:** `rm -rf data/` permanently deletes your OPC UA and MQTT configuration and any uploaded TLS certificates. Make sure to back up `data/config.json` and `data/certs/` if you want to restore them later.
-
----
-
-## Getting Started
-
-### 1 — Connect your OPC UA server
-
-Go to **OPC UA Config → Connection** and enter your server endpoint:
-
-```
-opc.tcp://your-plc-or-scada:4840
-```
-
-Supports Anonymous, Username/Password, and X.509 Certificate authentication.
-
-### 2 — Browse and select variables
-
-Use **Browse Nodes** to navigate the address space of your machine. Click any variable node to inspect it, then add it to your selection. In **Node Selection**, configure the polling interval and deadband per variable.
-
-### 3 — Configure your MQTT output
-
-Go to **MQTT Config → Connection** and enter your broker endpoint:
-
-| Platform | Endpoint format |
-|---|---|
-| AWS IoT Core | `mqtts://xxxx-ats.iot.eu-west-1.amazonaws.com:8883` |
-| Azure IoT Hub | `mqtts://your-hub.azure-devices.net:8883` |
-| Generic broker | `mqtt://your-broker:1883` |
-
-Upload your TLS certificates if required. Use **Generate AWS IoT Policy** or **Generate Azure IoT Config** to get the exact configuration needed for your cloud platform.
-
-### 4 — Deploy
-
-Click **Deploy config** in the sidebar. The gateway generates `telegraf.conf` and restarts the Telegraf agent. The Dashboard shows pipeline health in real time.
-
----
-
-## Dashboard
-
-The Dashboard provides a live view of your data pipeline:
-
-- **Pipeline Health** — OPC UA reads → buffer → MQTT delivery, with per-cycle message counts
-- **System Health** — CPU, memory, disk, and network I/O of the gateway host
-- **Data Quality** — OPC UA read success/error rates and loss percentage
-- **Component Status** — Running state of all Docker containers in the stack
-
----
-
-## Supported Integrations
-
-### AWS IoT Core
-Upload your device certificate, CA, and private key. The gateway auto-generates a scoped IAM policy based on your topic pattern — paste it directly into the AWS console.
-
-### Azure IoT Hub
-The gateway auto-generates the required MQTT username (`{hub}.azure-devices.net/{device_id}/?api-version=2021-04-12`) and the correct topic format (`devices/{device_id}/messages/events/`). Supports both SAS token and X.509 certificate authentication.
-
-### Any MQTT Broker
-Standard MQTT (1883) and MQTTS (8883) supported. Compatible with Mosquitto, HiveMQ, EMQX, and any MQTT 3.1.1-compliant broker.
-
----
-
-## Configuration Reference
-
-| Setting | Description |
-|---|---|
-| OPC UA Endpoint | `opc.tcp://host:port/path` |
-| Auth method | Anonymous, Username/Password, Certificate |
-| Topic pattern | Supports Telegraf template vars: `{{ .Hostname }}`, `{{ .PluginName }}` |
-| QoS | 0 (at most once), 1 (at least once), 2 (exactly once) |
-| Data format | JSON or InfluxDB Line Protocol |
+> **Note:** `rm -rf data/` permanently deletes your OPC UA and MQTT configuration and any uploaded TLS certificates. Back up `data/config.json` and `data/certs/` before proceeding if you want to restore them later.
 
 ---
 
