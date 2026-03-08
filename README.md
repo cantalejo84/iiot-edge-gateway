@@ -1,6 +1,6 @@
 # IIoT Edge Gateway
 
-**Connect your industrial machines to the cloud — no code required.**
+**Connect your industrial machines to the cloud**
 
 IIoT Edge Gateway is a self-hosted web application that bridges industrial equipment (OPC UA and Modbus TCP) with cloud IoT platforms. Configure your data pipeline through a clean web UI, and let [Telegraf](https://www.influxdata.com/time-series-platform/telegraf/) handle the heavy lifting.
 
