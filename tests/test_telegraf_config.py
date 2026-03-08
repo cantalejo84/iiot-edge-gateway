@@ -3,6 +3,7 @@
 Uses tomllib (stdlib Python 3.11+) to validate generated TOML.
 Renders the template directly via Jinja2 — no Flask app context required.
 """
+
 import sys
 import tomllib
 from pathlib import Path
@@ -91,7 +92,9 @@ def _render_and_parse(config):
     try:
         parsed = tomllib.loads(rendered)
     except tomllib.TOMLDecodeError as exc:
-        pytest.fail(f"Generated config is not valid TOML:\n{exc}\n\n--- config ---\n{rendered}")
+        pytest.fail(
+            f"Generated config is not valid TOML:\n{exc}\n\n--- config ---\n{rendered}"
+        )
     return rendered, parsed
 
 
@@ -131,27 +134,45 @@ class TestOpcuaSubscription:
         rendered, _ = _render_and_parse(self._sub_cfg())
         # The plugin-level interval line must NOT appear before the endpoint line
         lines = rendered.splitlines()
-        opcua_idx = next(i for i, l in enumerate(lines) if "[[inputs.opcua]]" in l)
-        endpoint_idx = next(i for i, l in enumerate(lines) if "endpoint" in l and i > opcua_idx)
+        opcua_idx = next(
+            i for i, line in enumerate(lines) if "[[inputs.opcua]]" in line
+        )
+        endpoint_idx = next(
+            i for i, line in enumerate(lines) if "endpoint" in line and i > opcua_idx
+        )
         plugin_block = "\n".join(lines[opcua_idx:endpoint_idx])
-        assert 'interval = ' not in plugin_block
+        assert "interval = " not in plugin_block
 
     def test_monitoring_params_present(self):
         rendered, _ = _render_and_parse(self._sub_cfg())
         assert "monitoring_params" in rendered
 
     def test_deadband_inside_data_change_filter(self):
-        acq = {**_BASE_ACQ, "mode": "subscription", "deadband_type": "Absolute", "deadband_value": 0.5}
+        acq = {
+            **_BASE_ACQ,
+            "mode": "subscription",
+            "deadband_type": "Absolute",
+            "deadband_value": 0.5,
+        }
         rendered, _ = _render_and_parse(_cfg(acquisition=acq))
         assert "data_change_filter" in rendered
         assert "deadband_type" in rendered
         # deadband must NOT appear at monitoring_params level (outside data_change_filter)
         lines = rendered.splitlines()
-        mp_idx = next((i for i, l in enumerate(lines) if "monitoring_params]" in l and "data_change" not in l), None)
-        dcf_idx = next((i for i, l in enumerate(lines) if "data_change_filter" in l), None)
+        mp_idx = next(
+            (
+                i
+                for i, line in enumerate(lines)
+                if "monitoring_params]" in line and "data_change" not in line
+            ),
+            None,
+        )
+        dcf_idx = next(
+            (i for i, line in enumerate(lines) if "data_change_filter" in line), None
+        )
         assert mp_idx is not None and dcf_idx is not None
         # deadband_type line must be after data_change_filter header
-        db_idx = next(i for i, l in enumerate(lines) if "deadband_type" in l)
+        db_idx = next(i for i, line in enumerate(lines) if "deadband_type" in line)
         assert db_idx > dcf_idx
 
 
@@ -224,7 +245,11 @@ class TestDualInput:
         rendered, _ = _render_and_parse(self._dual_cfg())
         assert '"opcua"' in rendered and '"modbus"' in rendered
         # They must appear on the same namepass line
-        namepass_line = next(l for l in rendered.splitlines() if "namepass" in l and "opcua" in l)
+        namepass_line = next(
+            line
+            for line in rendered.splitlines()
+            if "namepass" in line and "opcua" in line
+        )
         assert "modbus" in namepass_line
 
 
@@ -277,7 +302,9 @@ class TestOpcuaDisabled:
             publishing={"mode": "grouped", "group_interval": "30s"},
         )
         _, parsed = _render_and_parse(cfg)
-        assert "aggregators" not in parsed or "merge" not in parsed.get("aggregators", {})
+        assert "aggregators" not in parsed or "merge" not in parsed.get(
+            "aggregators", {}
+        )
 
 
 class TestTomlInjection:

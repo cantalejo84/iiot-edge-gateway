@@ -3,6 +3,7 @@
 _parse_endpoint is called before TLS setup — a wrong result means Telegraf
 either connects without encryption or uses the wrong port silently.
 """
+
 import sys
 from pathlib import Path
 
@@ -11,7 +12,6 @@ from app.services.mqtt_client import _parse_endpoint
 
 
 class TestParseEndpoint:
-
     # --- Plain MQTT ---
 
     def test_mqtt_with_explicit_port(self):
@@ -70,7 +70,9 @@ class TestParseEndpoint:
         assert port == 1883
 
     def test_fqdn_host(self):
-        host, port, use_tls = _parse_endpoint("mqtts://abc.iot.eu-west-1.amazonaws.com:8883")
+        host, port, use_tls = _parse_endpoint(
+            "mqtts://abc.iot.eu-west-1.amazonaws.com:8883"
+        )
         assert host == "abc.iot.eu-west-1.amazonaws.com"
         assert port == 8883
         assert use_tls is True

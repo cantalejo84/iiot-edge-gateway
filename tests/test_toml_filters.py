@@ -4,6 +4,7 @@ These are the security boundary between user-controlled input and the
 generated telegraf.conf. Bugs here can produce invalid TOML or allow
 injection of arbitrary config keys.
 """
+
 import sys
 from pathlib import Path
 
@@ -90,7 +91,8 @@ class TestTomlDq:
 
     def test_result_produces_valid_toml(self):
         import tomllib
-        for value in ['hello', '"quoted"', "back\\slash", "line\nbreak", "a\"b\\c"]:
+
+        for value in ["hello", '"quoted"', "back\\slash", "line\nbreak", 'a"b\\c']:
             escaped = _toml_dq(value)
             toml_str = f'key = "{escaped}"\n'
             parsed = tomllib.loads(toml_str)
@@ -149,7 +151,13 @@ class TestTomlSq:
 
     def test_result_produces_valid_toml(self):
         import tomllib
-        for value in ["hello", "it's ok", "line\nbreak", "{{ .Hostname }}/{{ .PluginName }}"]:
+
+        for value in [
+            "hello",
+            "it's ok",
+            "line\nbreak",
+            "{{ .Hostname }}/{{ .PluginName }}",
+        ]:
             sanitized = _toml_sq(value)
             toml_str = f"key = '{sanitized}'\n"
             parsed = tomllib.loads(toml_str)

@@ -3,12 +3,11 @@
 is_dirty() controls the "Unapplied changes" badge. mark_applied() is called
 after every successful deploy. Bugs here produce confusing UX or data loss.
 """
+
 import copy
 import json
 import sys
 from pathlib import Path
-
-import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from app.config import DEFAULT_CONFIG
@@ -32,7 +31,6 @@ def _make_config(**meta_overrides):
 
 
 class TestIsDirty:
-
     def test_no_file_returns_false(self, app_ctx):
         assert config_store.is_dirty() is False
 
@@ -75,7 +73,6 @@ class TestIsDirty:
 
 
 class TestMarkApplied:
-
     def test_mark_applied_clears_dirty(self, app_ctx):
         cfg = _make_config(last_modified="2024-01-01T00:00:01Z", last_applied=None)
         _write_config(app_ctx / "config.json", cfg)
@@ -105,7 +102,10 @@ class TestMarkApplied:
         meta = config_store.load()["_meta"]
         assert "applied_mqtt" in meta
         assert meta["applied_mqtt"]["endpoint"] == "mqtts://broker.example.com:8883"
-        assert meta["applied_mqtt"]["topic_pattern"] == "iiot/{{ .Hostname }}/{{ .PluginName }}"
+        assert (
+            meta["applied_mqtt"]["topic_pattern"]
+            == "iiot/{{ .Hostname }}/{{ .PluginName }}"
+        )
 
     def test_mark_applied_does_not_rebump_last_modified(self, app_ctx):
         """Calling mark_applied must NOT change last_modified — that would re-trigger dirty."""
@@ -141,7 +141,6 @@ class TestMarkApplied:
 
 
 class TestLoad:
-
     def test_no_file_returns_defaults(self, app_ctx):
         result = config_store.load()
         assert result["opcua"] == DEFAULT_CONFIG["opcua"]
@@ -174,7 +173,6 @@ class TestLoad:
 
 
 class TestSaveLoad:
-
     def test_roundtrip_preserves_data(self, app_ctx):
         cfg = config_store.load()
         cfg["opcua"]["endpoint"] = "opc.tcp://roundtrip:4840"
@@ -206,7 +204,6 @@ class TestSaveLoad:
 
 
 class TestRecordRestart:
-
     def test_stores_started_at_and_reason(self, app_ctx):
         cfg = _make_config()
         _write_config(app_ctx / "config.json", cfg)
@@ -227,7 +224,10 @@ class TestRecordRestart:
 
     def test_overwrites_previous_value(self, app_ctx):
         cfg = _make_config()
-        cfg["_meta"]["last_restart"] = {"started_at": "2026-01-01T00:00:00Z", "reason": "deploy"}
+        cfg["_meta"]["last_restart"] = {
+            "started_at": "2026-01-01T00:00:00Z",
+            "reason": "deploy",
+        }
         _write_config(app_ctx / "config.json", cfg)
 
         config_store.record_restart("2026-03-07T10:30:00Z", "unplanned")
@@ -259,4 +259,6 @@ class TestRecordRestart:
         assert meta["last_modified"] == ts
 
     def test_no_file_does_not_crash(self, app_ctx):
-        config_store.record_restart("2026-03-07T10:30:00Z", "manual")  # should not raise
+        config_store.record_restart(
+            "2026-03-07T10:30:00Z", "manual"
+        )  # should not raise

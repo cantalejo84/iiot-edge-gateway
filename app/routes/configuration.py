@@ -7,17 +7,19 @@ from flask import Blueprint, current_app, jsonify, render_template, request, sen
 
 from app.services import config_store, event_log
 from app.services.system_monitor import get_telegraf_version
-from app.services.telegraf_config import render_config
 
 configuration_bp = Blueprint("configuration", __name__)
 
 
 @configuration_bp.route("/configuration")
 def configuration_page():
-    return render_template("configuration.html", telegraf_version=get_telegraf_version())
+    return render_template(
+        "configuration.html", telegraf_version=get_telegraf_version()
+    )
 
 
 # ── Gateway config export ──────────────────────────────────────────────────────
+
 
 @configuration_bp.route("/api/configuration/export", methods=["GET"])
 def export_config():
@@ -33,6 +35,7 @@ def export_config():
 
 
 # ── Gateway config import ──────────────────────────────────────────────────────
+
 
 @configuration_bp.route("/api/configuration/import", methods=["POST"])
 def import_config():
@@ -50,7 +53,9 @@ def import_config():
     expected_keys = {"opcua", "nodes", "mqtt", "modbus", "publishing"}
     if not expected_keys.issubset(data.keys()):
         missing = expected_keys - data.keys()
-        return jsonify({"ok": False, "error": f"Missing sections: {', '.join(missing)}"}), 400
+        return jsonify(
+            {"ok": False, "error": f"Missing sections: {', '.join(missing)}"}
+        ), 400
 
     config_store.save(data)
     event_log.log("info", "system", "Gateway config imported from file")
@@ -58,6 +63,7 @@ def import_config():
 
 
 # ── Telegraf config read/write ─────────────────────────────────────────────────
+
 
 @configuration_bp.route("/api/configuration/telegraf", methods=["GET"])
 def get_telegraf_config():
@@ -86,24 +92,36 @@ def save_telegraf_config():
     restart_result = _restart_telegraf()
 
     if restart_result.get("ok"):
-        event_log.log("info", "telegraf", "Telegraf config edited manually and agent restarted")
+        event_log.log(
+            "info", "telegraf", "Telegraf config edited manually and agent restarted"
+        )
         time.sleep(3)
         error_line = _get_telegraf_config_error()
         if error_line:
-            event_log.log("error", "telegraf", "Telegraf failed to load config", detail=error_line)
-            return jsonify({"ok": True, "restart": restart_result, "warning": error_line})
+            event_log.log(
+                "error", "telegraf", "Telegraf failed to load config", detail=error_line
+            )
+            return jsonify(
+                {"ok": True, "restart": restart_result, "warning": error_line}
+            )
     else:
-        event_log.log("error", "telegraf", "Manual config saved but restart failed",
-                      detail=restart_result.get("error"))
+        event_log.log(
+            "error",
+            "telegraf",
+            "Manual config saved but restart failed",
+            detail=restart_result.get("error"),
+        )
 
     return jsonify({"ok": True, "restart": restart_result})
 
 
 # ── Helpers (same as telegraf.py) ─────────────────────────────────────────────
 
+
 def _restart_telegraf():
     try:
         import docker
+
         client = docker.from_env()
         containers = client.containers.list(filters={"name": "telegraf"})
         for c in containers:
@@ -116,11 +134,16 @@ def _restart_telegraf():
 def _get_telegraf_config_error():
     try:
         import docker
+
         client = docker.from_env()
         containers = client.containers.list(all=True, filters={"name": "telegraf"})
         if not containers:
             return None
-        logs = containers[0].logs(tail=30, stderr=True, stdout=True).decode("utf-8", errors="replace")
+        logs = (
+            containers[0]
+            .logs(tail=30, stderr=True, stdout=True)
+            .decode("utf-8", errors="replace")
+        )
         for line in reversed(logs.splitlines()):
             if " E! " in line:
                 return line.strip()

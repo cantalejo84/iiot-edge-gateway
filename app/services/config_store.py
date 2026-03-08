@@ -5,9 +5,9 @@ import os
 import threading
 from datetime import datetime, timezone
 
-logger = logging.getLogger(__name__)
-
 from app.config import DEFAULT_CONFIG
+
+logger = logging.getLogger(__name__)
 
 _lock = threading.Lock()
 
@@ -100,7 +100,10 @@ def record_restart(started_at_iso, reason):
         try:
             with open(path, "r") as f:
                 config = json.load(f)
-            config["_meta"]["last_restart"] = {"started_at": started_at_iso, "reason": reason}
+            config["_meta"]["last_restart"] = {
+                "started_at": started_at_iso,
+                "reason": reason,
+            }
             tmp_path = path + ".tmp"
             with open(tmp_path, "w") as f:
                 json.dump(config, f, indent=2)

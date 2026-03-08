@@ -1,4 +1,5 @@
 """Shared pytest fixtures."""
+
 import pytest
 from flask import Flask
 

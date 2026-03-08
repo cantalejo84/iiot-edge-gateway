@@ -29,8 +29,12 @@ def render_config(config):
     env.filters["toml_sq"] = _toml_sq
     template = env.get_template("telegraf.conf.j2")
     _default_acquisition = {
-        "mode": "polling", "scan_rate": "10s", "sampling_interval": "1s",
-        "queue_size": 10, "trigger": "StatusValue", "deadband_type": "None",
+        "mode": "polling",
+        "scan_rate": "10s",
+        "sampling_interval": "1s",
+        "queue_size": 10,
+        "trigger": "StatusValue",
+        "deadband_type": "None",
         "deadband_value": 0.0,
     }
     return template.render(

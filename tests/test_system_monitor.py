@@ -3,11 +3,10 @@
 The NDJSON parser powers the Pipeline Health section of the dashboard.
 Bugs produce wrong metric values or None-related errors in the frontend.
 """
+
 import json
 import sys
 from pathlib import Path
-
-import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from app.services.system_monitor import (
@@ -23,42 +22,56 @@ from app.services.system_monitor import (
 _TS = 1700000010  # arbitrary fixed timestamp
 
 
-def _gather(input_name, metrics_gathered=5, gather_time_ns=12_500_000, errors=0, ts=_TS):
-    return json.dumps({
-        "name": "internal_gather",
-        "tags": {"input": input_name},
-        "fields": {
-            "metrics_gathered": metrics_gathered,
-            "gather_time_ns": gather_time_ns,
-            "errors": errors,
-        },
-        "timestamp": ts,
-    })
+def _gather(
+    input_name, metrics_gathered=5, gather_time_ns=12_500_000, errors=0, ts=_TS
+):
+    return json.dumps(
+        {
+            "name": "internal_gather",
+            "tags": {"input": input_name},
+            "fields": {
+                "metrics_gathered": metrics_gathered,
+                "gather_time_ns": gather_time_ns,
+                "errors": errors,
+            },
+            "timestamp": ts,
+        }
+    )
 
 
-def _write_mqtt(metrics_written=8, metrics_dropped=2, buffer_size=4,
-                buffer_limit=10000, errors=0, ts=_TS):
-    return json.dumps({
-        "name": "internal_write",
-        "tags": {"output": "mqtt"},
-        "fields": {
-            "metrics_written": metrics_written,
-            "metrics_dropped": metrics_dropped,
-            "buffer_size": buffer_size,
-            "buffer_limit": buffer_limit,
-            "errors": errors,
-        },
-        "timestamp": ts,
-    })
+def _write_mqtt(
+    metrics_written=8,
+    metrics_dropped=2,
+    buffer_size=4,
+    buffer_limit=10000,
+    errors=0,
+    ts=_TS,
+):
+    return json.dumps(
+        {
+            "name": "internal_write",
+            "tags": {"output": "mqtt"},
+            "fields": {
+                "metrics_written": metrics_written,
+                "metrics_dropped": metrics_dropped,
+                "buffer_size": buffer_size,
+                "buffer_limit": buffer_limit,
+                "errors": errors,
+            },
+            "timestamp": ts,
+        }
+    )
 
 
 def _opcua_status(read_success=25, read_error=2, ts=_TS):
-    return json.dumps({
-        "name": "internal_opcua",
-        "tags": {},
-        "fields": {"read_success": read_success, "read_error": read_error},
-        "timestamp": ts,
-    })
+    return json.dumps(
+        {
+            "name": "internal_opcua",
+            "tags": {},
+            "fields": {"read_success": read_success, "read_error": read_error},
+            "timestamp": ts,
+        }
+    )
 
 
 def _write_metrics(app_ctx, *lines):
@@ -71,7 +84,6 @@ def _write_metrics(app_ctx, *lines):
 
 
 class TestGetTelegrafMetricsNoFile:
-
     def test_returns_defaults_when_file_missing(self, app_ctx):
         result = get_telegraf_metrics()
         assert result["opcua_gathered"] == 0
@@ -86,13 +98,18 @@ class TestGetTelegrafMetricsNoFile:
 
 
 class TestGetTelegrafMetricsFull:
-
     def test_all_fields_parsed(self, app_ctx):
         _write_metrics(
             app_ctx,
             _gather("opcua", metrics_gathered=5, gather_time_ns=12_500_000, errors=0),
             _gather("modbus", metrics_gathered=3, gather_time_ns=8_000_000, errors=1),
-            _write_mqtt(metrics_written=8, metrics_dropped=2, buffer_size=4, buffer_limit=10000, errors=0),
+            _write_mqtt(
+                metrics_written=8,
+                metrics_dropped=2,
+                buffer_size=4,
+                buffer_limit=10000,
+                errors=0,
+            ),
             _opcua_status(read_success=25, read_error=2),
         )
         d = get_telegraf_metrics()
@@ -145,7 +162,6 @@ class TestGetTelegrafMetricsLatestWins:
 
 
 class TestGetTelegrafMetricsPartial:
-
     def test_only_opcua_modbus_fields_default(self, app_ctx):
         _write_metrics(
             app_ctx,
@@ -155,7 +171,7 @@ class TestGetTelegrafMetricsPartial:
         d = get_telegraf_metrics()
         assert d["opcua_gathered"] == 7
         assert d["mqtt_written"] == 5
-        assert d["modbus_gathered"] == 0   # not present → default
+        assert d["modbus_gathered"] == 0  # not present → default
         assert d["modbus_errors"] == 0
 
     def test_only_modbus_opcua_fields_default(self, app_ctx):
@@ -172,7 +188,6 @@ class TestGetTelegrafMetricsPartial:
 
 
 class TestGetTelegrafMetricsMalformed:
-
     def test_malformed_lines_skipped(self, app_ctx):
         _write_metrics(
             app_ctx,
@@ -187,24 +202,28 @@ class TestGetTelegrafMetricsMalformed:
 
     def test_wrong_tag_values_not_matched(self, app_ctx):
         """internal_gather with input=unknown should not fill opcua or modbus fields."""
-        line = json.dumps({
-            "name": "internal_gather",
-            "tags": {"input": "unknown_plugin"},
-            "fields": {"metrics_gathered": 999, "gather_time_ns": 0, "errors": 0},
-            "timestamp": _TS,
-        })
+        line = json.dumps(
+            {
+                "name": "internal_gather",
+                "tags": {"input": "unknown_plugin"},
+                "fields": {"metrics_gathered": 999, "gather_time_ns": 0, "errors": 0},
+                "timestamp": _TS,
+            }
+        )
         _write_metrics(app_ctx, line)
         d = get_telegraf_metrics()
         assert d["opcua_gathered"] == 0
         assert d["modbus_gathered"] == 0
 
     def test_missing_fields_key_handled(self, app_ctx):
-        line = json.dumps({
-            "name": "internal_gather",
-            "tags": {"input": "opcua"},
-            # no "fields" key
-            "timestamp": _TS,
-        })
+        line = json.dumps(
+            {
+                "name": "internal_gather",
+                "tags": {"input": "opcua"},
+                # no "fields" key
+                "timestamp": _TS,
+            }
+        )
         _write_metrics(app_ctx, line)
         # Should not raise; fields default to 0
         d = get_telegraf_metrics()
@@ -223,14 +242,13 @@ class TestGetTelegrafMetricsMalformed:
 
 
 class TestComputeUnexpectedRestart:
-
     def test_same_timestamp_returns_none(self):
         ts = "2026-03-07T10:30:00.123456789Z"
         assert _compute_unexpected_restart(ts, ts) is None
 
     def test_different_time_returns_current(self):
         current = "2026-03-07T12:00:00.000000000Z"
-        deploy  = "2026-03-07T10:30:00.123456789Z"
+        deploy = "2026-03-07T10:30:00.123456789Z"
         assert _compute_unexpected_restart(current, deploy) == current
 
     def test_none_current_returns_none(self):
@@ -251,7 +269,7 @@ class TestComputeUnexpectedRestart:
 
     def test_one_second_apart_detected_as_restart(self):
         current = "2026-03-07T10:30:01.000000000Z"
-        deploy  = "2026-03-07T10:30:00.999999999Z"
+        deploy = "2026-03-07T10:30:00.999999999Z"
         assert _compute_unexpected_restart(current, deploy) == current
 
 

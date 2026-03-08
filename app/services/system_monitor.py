@@ -170,8 +170,9 @@ def _get_telegraf_container_info():
     Returns (None, None) on any error.
     """
     try:
-        import docker
         from datetime import datetime, timezone
+
+        import docker
 
         client = docker.from_env()
         containers = client.containers.list(all=True, filters={"name": "telegraf"})
@@ -179,7 +180,9 @@ def _get_telegraf_container_info():
             return None, None
         c = containers[0]
         c.reload()
-        started_at = c.attrs["State"]["StartedAt"]  # e.g. "2026-03-07T10:30:00.123456789Z"
+        started_at = c.attrs["State"][
+            "StartedAt"
+        ]  # e.g. "2026-03-07T10:30:00.123456789Z"
         if c.status != "running":
             return started_at, None
         # Parse to second precision — strip sub-second portion

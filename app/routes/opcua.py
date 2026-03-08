@@ -112,6 +112,7 @@ def save_selected_nodes():
 @opcua_bp.route("/api/opcua/acquisition", methods=["GET"])
 def get_acquisition():
     from app.config import DEFAULT_CONFIG
+
     defaults = DEFAULT_CONFIG.get("acquisition", {})
     return jsonify({**defaults, **config_store.get_section("acquisition")})
 
