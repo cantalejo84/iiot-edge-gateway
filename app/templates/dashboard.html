@@ -31,33 +31,113 @@
             <span id="pipeline-status-label">Checking...</span>
         </span>
     </div>
-    <div class="card-body">
-        <div class="pipeline-flow-v2" id="pipeline-flow">
+    <div class="card-body pipeline-health-body">
+        {% set has_opcua = opcua_ready %}
+        {% set has_modbus = modbus_ready %}
+        {% set dual = has_opcua and has_modbus %}
 
-            <!-- OPC UA Read (big) -->
-            <div class="pf-node pf-node-opcua" id="pf-opcua">
-                <div class="pf-pulse-ring"></div>
-                <div class="pf-node-icon"><i class="bi bi-cpu"></i></div>
-                <div class="pf-node-label">OPC UA Read</div>
-                <div class="pf-node-value" id="p-opcua-read">--</div>
-                <div class="pf-quality-row">
-                    <span class="pf-quality-chip pf-q-ok" data-bs-toggle="tooltip" title="Successful node reads">
-                        <i class="bi bi-check-lg"></i> <span id="q-read-success">--</span>
-                    </span>
-                    <span class="pf-quality-chip pf-q-err" data-bs-toggle="tooltip" title="Failed node reads">
-                        <i class="bi bi-x-lg"></i> <span id="q-read-error">--</span>
-                    </span>
-                    <span class="pf-quality-chip pf-q-rate" data-bs-toggle="tooltip" title="Read success rate">
-                        <span id="q-success-rate">--</span>
-                    </span>
-                    <div class="pf-quality-bar">
-                        <div class="pf-quality-bar-fill" id="q-success-bar"></div>
-                        <div class="pf-quality-bar-err" id="q-error-bar"></div>
+        <!-- Left: flow animation -->
+        <div class="pipeline-anim-col">
+        <div class="pipeline-flow-v2 {% if dual %}pipeline-dual{% endif %}" id="pipeline-flow">
+
+            {% if dual %}
+            <!-- ── DUAL MODE: Y-fork — each input has its own line to the buffer ── -->
+            <div class="pf-y-section">
+                <div class="pf-y-row">
+                    <div class="pf-node pf-node-opcua" id="pf-opcua">
+                        <div class="pf-node-icon"><i class="bi bi-cpu"></i></div>
+                        <div class="pf-node-label">OPC UA Read</div>
+                        <div class="pf-node-value" id="p-opcua-read">--</div>
+                        <div class="pf-node-sub">data points <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Total OPC UA data points collected since last Telegraf restart. Each configured node produces 1 point per cycle."></i></div>
+                    </div>
+                    {% if grouped_mode %}
+                    <div class="pf-y-arm pf-agg-arm"><div class="pf-connector-line"></div></div>
+                    <div class="pf-node pf-node-agg pf-node-agg-compact">
+                        <div class="pf-node-icon"><i class="bi bi-intersect"></i></div>
+                        <div class="pf-node-label">Aggregator</div>
+                        <div class="pf-node-value" id="p-agg-grouped">--</div>
+                        <div class="pf-node-sub">merged msgs</div>
+                    </div>
+                    {% endif %}
+                    <div class="pf-y-arm">
+                        <div class="pf-connector-line"></div>
+                    </div>
+                </div>
+                <div class="pf-y-row">
+                    <div class="pf-node pf-node-modbus" id="pf-modbus">
+                        <div class="pf-node-icon"><i class="bi bi-ethernet"></i></div>
+                        <div class="pf-node-label">Modbus Read</div>
+                        <div class="pf-node-value" id="p-modbus-read">--</div>
+                        <div class="pf-node-sub">data points <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Total Modbus data points collected since last Telegraf restart. Each configured register produces 1 point per cycle."></i></div>
+                    </div>
+                    <div class="pf-y-arm">
+                        <div class="pf-connector-line"></div>
                     </div>
                 </div>
             </div>
+            <!-- Vertical merge bar (top/height set by JS after render) -->
+            <div class="pf-y-vbar-wrap" id="pf-y-vbar-wrap">
+                <div class="pf-y-vbar" id="pf-y-vbar"></div>
+                <div class="pf-connector-x"><i class="bi bi-x"></i></div>
+            </div>
+            <!-- Output connector: merge point → buffer (animated dots) -->
+            <div class="pf-connector">
+                <div class="pf-connector-line"></div>
+                <div class="flow-dot"></div>
+                <div class="flow-dot"></div>
+                <div class="flow-dot"></div>
+            </div>
 
-            <!-- Connector 1 -->
+            {% else %}
+            <!-- ── SINGLE MODE: one input node + regular connector ── -->
+            <div class="pf-inputs-col">
+                {% if has_opcua or not has_modbus %}
+                <div class="pf-node pf-node-opcua" id="pf-opcua">
+                    <div class="pf-node-icon"><i class="bi bi-cpu"></i></div>
+                    <div class="pf-node-label">OPC UA Read</div>
+                    <div class="pf-node-value" id="p-opcua-read">--</div>
+                    <div class="pf-node-sub">data points <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Total OPC UA data points collected since last Telegraf restart. Each configured node produces 1 point per cycle."></i></div>
+                    <div class="pf-quality-row">
+                        <span class="pf-quality-chip pf-q-ok" data-bs-toggle="tooltip" title="Successful node reads">
+                            <i class="bi bi-check-lg"></i> <span id="q-read-success">--</span>
+                        </span>
+                        <span class="pf-quality-chip pf-q-err" data-bs-toggle="tooltip" title="Failed node reads">
+                            <i class="bi bi-x-lg"></i> <span id="q-read-error">--</span>
+                        </span>
+                        <span class="pf-quality-chip pf-q-rate" data-bs-toggle="tooltip" title="Read success rate">
+                            <span id="q-success-rate">--</span>
+                        </span>
+                    </div>
+                </div>
+                {% endif %}
+                {% if has_modbus %}
+                <div class="pf-node pf-node-modbus" id="pf-modbus">
+                    <div class="pf-node-icon"><i class="bi bi-ethernet"></i></div>
+                    <div class="pf-node-label">Modbus Read</div>
+                    <div class="pf-node-value" id="p-modbus-read">--</div>
+                    <div class="pf-node-sub">data points <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Total Modbus data points collected since last Telegraf restart. Each configured register produces 1 point per cycle."></i></div>
+                    <div class="pf-quality-row">
+                        <span class="pf-quality-chip pf-q-err" data-bs-toggle="tooltip" title="Modbus read errors">
+                            <i class="bi bi-x-lg"></i> <span id="p-modbus-errors">--</span>
+                        </span>
+                        <span class="pf-quality-chip pf-q-ok" data-bs-toggle="tooltip" title="Modbus scan time">
+                            <i class="bi bi-clock"></i> <span id="p-modbus-scan">-- ms</span>
+                        </span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% if grouped_mode and has_opcua %}
+            <div class="pf-connector pf-connector-short">
+                <div class="pf-connector-line"></div>
+            </div>
+            <div class="pf-node pf-node-agg">
+                <div class="pf-node-icon"><i class="bi bi-intersect"></i></div>
+                <div class="pf-node-label">Aggregator</div>
+                <div class="pf-node-value" id="p-agg-grouped">--</div>
+                <div class="pf-node-sub">merged msgs</div>
+            </div>
+            {% endif %}
             <div class="pf-connector">
                 <div class="pf-connector-line"></div>
                 <div class="pf-connector-x"><i class="bi bi-x"></i></div>
@@ -65,6 +145,7 @@
                 <div class="flow-dot"></div>
                 <div class="flow-dot"></div>
             </div>
+            {% endif %}
 
             <!-- Buffer -->
             <div class="pf-node pf-node-buffer">
@@ -91,38 +172,87 @@
                 <div class="pf-node-value" id="p-mqtt-written">--</div>
             </div>
         </div>
+        </div><!-- /pipeline-anim-col -->
 
-        <!-- Stats row -->
-        <div class="dash-grid dash-grid-4 mt-3">
-            <div class="pipeline-stat">
-                <div class="pipeline-stat-value" id="p-scan-time">--</div>
-                <div class="pipeline-stat-label">
-                    Scan Time
-                    <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Time Telegraf takes to read all OPC UA nodes per cycle. If this exceeds the polling interval, data gaps may occur."></i>
+        <!-- Right: metrics panel -->
+        <div class="pipeline-metrics-col">
+        <div class="pipeline-metrics-section">
+
+            {% if has_opcua or not has_modbus %}
+            <div class="pm-block">
+                <div class="pm-block-header opcua-label">
+                    <i class="bi bi-cpu"></i> OPC UA
+                </div>
+                <div class="dash-grid dash-grid-metrics">
+                    <div class="pipeline-stat">
+                        <div class="pipeline-stat-value" id="p-scan-time">--</div>
+                        <div class="pipeline-stat-label">Scan Time <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Time to read all OPC UA nodes per cycle."></i></div>
+                    </div>
+                    <div class="pipeline-stat">
+                        <div class="pipeline-stat-value text-success" id="q2-read-success">--</div>
+                        <div class="pipeline-stat-label">OK Reads <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Cumulative successful OPC UA node reads since Telegraf started."></i></div>
+                    </div>
+                    <div class="pipeline-stat">
+                        <div class="pipeline-stat-value text-danger">
+                            <span class="stat-dot" id="dot-read-error"></span><span id="q2-read-error">--</span>
+                        </div>
+                        <div class="pipeline-stat-label">Err Reads <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Cumulative failed OPC UA node reads since Telegraf started."></i></div>
+                    </div>
+                    <div class="pipeline-stat">
+                        <div class="pipeline-stat-value" id="q2-success-rate">--</div>
+                        <div class="pipeline-stat-label">Success Rate <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Percentage of OPC UA reads that succeeded (OK / total reads)."></i></div>
+                    </div>
                 </div>
             </div>
-            <div class="pipeline-stat">
-                <div class="pipeline-stat-value" id="p-dropped">--</div>
-                <div class="pipeline-stat-label">
-                    Dropped
-                    <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Messages discarded because the MQTT output buffer was full."></i>
+            {% endif %}
+
+            {% if has_modbus %}
+            <div class="pm-block">
+                <div class="pm-block-header modbus-label">
+                    <i class="bi bi-ethernet"></i> Modbus
+                </div>
+                <div class="dash-grid dash-grid-metrics">
+                    <div class="pipeline-stat">
+                        <div class="pipeline-stat-value" id="p-modbus-scan-stat">--</div>
+                        <div class="pipeline-stat-label">Scan Time <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Time to poll all Modbus registers per cycle."></i></div>
+                    </div>
+                    <div class="pipeline-stat">
+                        <div class="pipeline-stat-value text-danger">
+                            <span class="stat-dot" id="dot-modbus-errors"></span><span id="p-modbus-errors-stat">--</span>
+                        </div>
+                        <div class="pipeline-stat-label">Errors <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Cumulative Modbus read errors since Telegraf started."></i></div>
+                    </div>
                 </div>
             </div>
-            <div class="pipeline-stat">
-                <div class="pipeline-stat-value" id="p-errors">--</div>
-                <div class="pipeline-stat-label">
-                    Errors (OPC / MQTT)
-                    <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Connection or read errors on OPC UA (left) and MQTT write errors (right)."></i>
+            {% endif %}
+
+            <div class="pm-block">
+                <div class="pm-block-header output-label">
+                    <i class="bi bi-cloud-arrow-up"></i> Output
+                </div>
+                <div class="dash-grid dash-grid-metrics">
+                    <div class="pipeline-stat">
+                        <div class="pipeline-stat-value">
+                            <span class="stat-dot" id="dot-dropped"></span><span id="p-dropped">--</span>
+                        </div>
+                        <div class="pipeline-stat-label">Dropped <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Messages discarded because the MQTT output buffer was full."></i></div>
+                    </div>
+                    <div class="pipeline-stat">
+                        <div class="pipeline-stat-value">
+                            <span class="stat-dot" id="dot-errors"></span><span id="p-errors">--</span>
+                        </div>
+                        <div class="pipeline-stat-label">MQTT Errors <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="MQTT write errors (broker unreachable, auth failure, etc.)."></i></div>
+                    </div>
+                    <div class="pipeline-stat">
+                        <div class="pipeline-stat-value" id="p-loss">--</div>
+                        <div class="pipeline-stat-label">Loss Rate <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Percentage of collected metrics that did not reach MQTT. Should be 0%."></i></div>
+                    </div>
                 </div>
             </div>
-            <div class="pipeline-stat">
-                <div class="pipeline-stat-value" id="p-loss">--</div>
-                <div class="pipeline-stat-label">
-                    Loss Rate
-                    <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Percentage of OPC UA reads that did not reach MQTT. Should be 0%."></i>
-                </div>
-            </div>
+
         </div>
+        </div><!-- /pipeline-metrics-col -->
+
     </div>
 </div>
 
@@ -202,24 +332,24 @@
                 <div class="gw-meta-row">
                     <div class="gw-meta-item">
                         <div class="gw-meta-label">
-                            Online for
-                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Time since the gateway container was last started."></i>
+                            Telegraf running
+                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Time since the Telegraf container was last started."></i>
                         </div>
-                        <div class="gw-meta-value" id="g-uptime">--</div>
+                        <div class="gw-meta-value" id="g-telegraf-uptime">--</div>
                     </div>
                     <div class="gw-meta-item">
                         <div class="gw-meta-label">
-                            Nodes configured
-                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="OPC UA nodes selected for data collection."></i>
-                        </div>
-                        <div class="gw-meta-value" id="g-nodes">--</div>
-                    </div>
-                    <div class="gw-meta-item">
-                        <div class="gw-meta-label">
-                            Last config applied
-                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="When the Telegraf configuration was last generated and applied."></i>
+                            Last Deploy Config
+                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="When the Telegraf configuration was last generated and deployed."></i>
                         </div>
                         <div class="gw-meta-value" id="g-last-config">--</div>
+                    </div>
+                    <div class="gw-meta-item">
+                        <div class="gw-meta-label">
+                            Last restart
+                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="When Telegraf last restarted and why: Deploy (config applied), Manual (sidebar button), or ⚠ Unplanned (machine reboot or external event)."></i>
+                        </div>
+                        <div class="gw-meta-value" id="g-last-restart">--</div>
                     </div>
                 </div>
 

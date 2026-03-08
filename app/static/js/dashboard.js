@@ -2,11 +2,15 @@
 
 let lastOpcuaCount = null;
 let telegrafRunning = null;
+let nodesConfigured = 0;
+let anyInputActive = true;
 
 document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
         new bootstrap.Tooltip(el);
     });
+    positionForkBar();
+    window.addEventListener("resize", positionForkBar);
     refreshAll();
     setInterval(refreshAll, 5000);
 
@@ -33,8 +37,18 @@ async function refreshTelegrafRunning() {
     try {
         const d = await fetchJSON("/api/telegraf/status");
         telegrafRunning = d.ok ? d.running : null;
-        setPipelineActive(telegrafRunning === true);
+        updatePipelineStatus();
     } catch (e) {}
+}
+
+function updatePipelineStatus() {
+    if (telegrafRunning === true && anyInputActive) {
+        setPipelineState("running");
+    } else if (telegrafRunning === true && !anyInputActive) {
+        setPipelineState("idle");
+    } else {
+        setPipelineState("stopped");
+    }
 }
 
 // --- System Health ---
@@ -74,81 +88,147 @@ async function refreshTelegrafMetrics() {
     try {
         const d = await fetchJSON("/api/dashboard/telegraf-metrics");
 
-        const opcuaCount = d.opcua_gathered;
-        lastOpcuaCount = opcuaCount;
+        lastOpcuaCount = d.opcua_gathered;
+        if (d.nodes_configured !== undefined) nodesConfigured = d.nodes_configured;
+        if (d.any_input_active !== undefined) {
+            anyInputActive = d.any_input_active;
+            updatePipelineStatus();
+        }
 
-        // OPC UA node
-        document.getElementById("p-opcua-read").textContent = formatNum(d.opcua_gathered);
-        document.getElementById("p-mqtt-written").textContent = formatNum(d.mqtt_written);
+        // OPC UA input node
+        setText("p-opcua-read", formatNum(d.opcua_gathered));
+
+        // Aggregator node (only rendered in grouped mode)
+        const aggEl = document.getElementById("p-agg-grouped");
+        if (aggEl) {
+            aggEl.textContent = (nodesConfigured > 0 && d.opcua_gathered > 0)
+                ? formatNum(Math.round(d.opcua_gathered / nodesConfigured))
+                : "--";
+        }
+
+        // Modbus input node
+        setText("p-modbus-read", formatNum(d.modbus_gathered));
+        setText("p-modbus-errors", formatNum(d.modbus_errors));
+        setText("p-modbus-scan", `${d.modbus_scan_time_ms} ms`);
+        setText("p-modbus-scan-stat", `${d.modbus_scan_time_ms} ms`);
+
+        // MQTT output
+        setText("p-mqtt-written", formatNum(d.mqtt_written));
 
         // Buffer
         const bufPct = d.mqtt_buffer_limit > 0 ? (d.mqtt_buffer_size / d.mqtt_buffer_limit) * 100 : 0;
         const bufFill = document.getElementById("p-buffer-fill");
-        bufFill.style.width = `${bufPct}%`;
-        bufFill.className = "pf-buffer-fill";
-        if (bufPct > 80) bufFill.classList.add("danger");
-        else if (bufPct > 50) bufFill.classList.add("warning");
-        document.getElementById("p-buffer-text").textContent =
-            `${formatNum(d.mqtt_buffer_size)} / ${formatNum(d.mqtt_buffer_limit)}`;
-
-        // Stats
-        document.getElementById("p-scan-time").textContent = `${d.scan_time_ms} ms`;
-
-        const droppedEl = document.getElementById("p-dropped");
-        droppedEl.textContent = formatNum(d.mqtt_dropped);
-        droppedEl.style.color = d.mqtt_dropped > 0 ? "var(--warning)" : "";
-
-        const errorsEl = document.getElementById("p-errors");
-        const totalErrors = d.opcua_errors + d.mqtt_errors;
-        errorsEl.textContent = `${d.opcua_errors} / ${d.mqtt_errors}`;
-        errorsEl.style.color = totalErrors > 0 ? "var(--danger)" : "";
-
-        const lossEl = document.getElementById("p-loss");
-        if (d.opcua_gathered > 0) {
-            const loss = Math.max(0, ((d.opcua_gathered - d.mqtt_written) / d.opcua_gathered) * 100);
-            lossEl.textContent = `${loss.toFixed(1)}%`;
-            lossEl.style.color = loss > 0 ? "var(--danger)" : "var(--success)";
-        } else {
-            lossEl.textContent = "--";
-            lossEl.style.color = "";
+        if (bufFill) {
+            bufFill.style.width = `${bufPct}%`;
+            bufFill.className = "pf-buffer-fill";
+            if (bufPct > 80) bufFill.classList.add("danger");
+            else if (bufPct > 50) bufFill.classList.add("warning");
         }
+        setText("p-buffer-text", `${formatNum(d.mqtt_buffer_size)} / ${formatNum(d.mqtt_buffer_limit)}`);
 
-        // Read quality
-        document.getElementById("q-read-success").textContent = formatNum(d.opcua_read_success);
-        document.getElementById("q-read-error").textContent = formatNum(d.opcua_read_error);
+        // OPC UA scan stat
+        setText("p-scan-time", `${d.opcua_scan_time_ms} ms`);
 
+        // OPC UA read quality (pipeline node chips)
+        setText("q-read-success", formatNum(d.opcua_read_success));
+        setText("q-read-error", formatNum(d.opcua_read_error));
         const total = d.opcua_read_success + d.opcua_read_error;
         const rate = total > 0 ? (d.opcua_read_success / total) * 100 : 0;
-        document.getElementById("q-success-rate").textContent = total > 0 ? `${rate.toFixed(1)}%` : "--";
-        document.getElementById("q-success-bar").style.width = `${rate}%`;
-        document.getElementById("q-error-bar").style.width = `${total > 0 ? 100 - rate : 0}%`;
+        setText("q-success-rate", total > 0 ? `${rate.toFixed(1)}%` : "--");
+
+        // OPC UA metrics row
+        setText("q2-read-success", formatNum(d.opcua_read_success));
+        setText("q2-read-error", formatNum(d.opcua_read_error));
+        setText("q2-success-rate", total > 0 ? `${rate.toFixed(1)}%` : "--");
+        setDot("dot-read-error", d.opcua_read_error === 0);
+
+        // Modbus metrics row
+        setText("p-modbus-errors-stat", formatNum(d.modbus_errors));
+        setDot("dot-modbus-errors", d.modbus_errors === 0);
+
+        // Output metrics row
+        const droppedEl = document.getElementById("p-dropped");
+        if (droppedEl) {
+            droppedEl.textContent = formatNum(d.mqtt_dropped);
+            droppedEl.style.color = d.mqtt_dropped > 0 ? "var(--warning)" : "";
+        }
+        setDot("dot-dropped", d.mqtt_dropped === 0);
+
+        const errorsEl = document.getElementById("p-errors");
+        if (errorsEl) {
+            errorsEl.textContent = formatNum(d.mqtt_errors);
+            errorsEl.style.color = d.mqtt_errors > 0 ? "var(--danger)" : "";
+        }
+        setDot("dot-errors", d.mqtt_errors === 0);
+
+        const lossEl = document.getElementById("p-loss");
+        if (lossEl) {
+            // In grouped mode OPC UA metrics are merged N→1, so use aggregator count
+            const isGrouped = document.getElementById("p-agg-grouped") !== null;
+            let opcuaIn = (isGrouped && nodesConfigured > 0)
+                ? Math.round(d.opcua_gathered / nodesConfigured)
+                : d.opcua_gathered;
+            // The aggregator always keeps 1 batch buffered — subtract it to avoid false positives at startup
+            if (isGrouped) opcuaIn = Math.max(0, opcuaIn - 1);
+            const totalIn = opcuaIn + d.modbus_gathered;
+            if (totalIn > 0 && d.mqtt_written > 0) {
+                const loss = Math.max(0, ((totalIn - d.mqtt_written) / totalIn) * 100);
+                lossEl.textContent = `${loss.toFixed(1)}%`;
+                lossEl.style.color = loss > 0 ? "var(--danger)" : "var(--success)";
+            } else {
+                lossEl.textContent = "--";
+                lossEl.style.color = "";
+            }
+        }
 
         if (d.last_updated) {
-            document.getElementById("last-updated").textContent =
-                new Date(d.last_updated * 1000).toLocaleTimeString();
+            setText("last-updated", new Date(d.last_updated * 1000).toISOString().replace("T", " ").slice(0, 19) + " UTC");
         }
     } catch (e) {}
 }
 
-function setPipelineActive(active) {
+function setText(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+}
+
+function setDot(id, isOk) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.className = "stat-dot " + (isOk ? "dot-ok" : "dot-err");
+}
+
+function setWidth(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.style.width = val;
+}
+
+function setPipelineState(state) {
+    // state: "running" | "idle" | "stopped"
     const flow = document.getElementById("pipeline-flow");
     const dot = document.getElementById("pipeline-status-dot");
     const label = document.getElementById("pipeline-status-label");
     const badge = document.getElementById("pipeline-status-badge");
     if (!flow) return;
 
-    if (active) {
+    flow.classList.remove("pipeline-active", "pipeline-stopped", "pipeline-idle");
+    if (dot) dot.classList.remove("dot-running", "dot-idle");
+    if (badge) badge.classList.remove("badge-running", "badge-stopped", "badge-idle");
+
+    if (state === "running") {
         flow.classList.add("pipeline-active");
-        flow.classList.remove("pipeline-stopped");
         if (dot) dot.classList.add("dot-running");
         if (label) label.textContent = "Running";
-        if (badge) { badge.classList.add("badge-running"); badge.classList.remove("badge-stopped"); }
+        if (badge) badge.classList.add("badge-running");
+    } else if (state === "idle") {
+        flow.classList.add("pipeline-idle");
+        if (dot) dot.classList.add("dot-idle");
+        if (label) label.textContent = "Idle";
+        if (badge) badge.classList.add("badge-idle");
     } else {
-        flow.classList.remove("pipeline-active");
         flow.classList.add("pipeline-stopped");
-        if (dot) dot.classList.remove("dot-running");
         if (label) label.textContent = "Stopped";
-        if (badge) { badge.classList.remove("badge-running"); badge.classList.add("badge-stopped"); }
+        if (badge) badge.classList.add("badge-stopped");
     }
 }
 
@@ -158,16 +238,35 @@ async function refreshGatewayInfo() {
     try {
         const d = await fetchJSON("/api/dashboard/gateway-info");
 
-        document.getElementById("g-uptime").textContent = formatDuration(d.uptime_seconds);
-        document.getElementById("g-nodes").textContent = d.nodes_configured;
+        nodesConfigured = d.nodes_configured || 0;
+
+        setText("g-telegraf-uptime",
+            d.telegraf_uptime_seconds != null ? formatDuration(d.telegraf_uptime_seconds) : "--"
+        );
 
         const lastConfig = document.getElementById("g-last-config");
-        if (d.last_config_applied) {
-            lastConfig.textContent = new Date(d.last_config_applied).toLocaleString(undefined, {
-                day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"
-            });
-        } else {
-            lastConfig.textContent = "Never";
+        if (lastConfig) {
+            lastConfig.textContent = d.last_config_applied
+                ? new Date(d.last_config_applied).toISOString().replace("T", " ").slice(0, 19) + " UTC"
+                : "Never";
+        }
+
+        const lastRestart = document.getElementById("g-last-restart");
+        if (lastRestart) {
+            const r = d.last_restart;
+            if (r && r.started_at) {
+                const ts = new Date(r.started_at).toISOString().replace("T", " ").slice(0, 19) + " UTC";
+                const badges = {
+                    deploy:    { label: "Deploy",      cls: "restart-deploy" },
+                    manual:    { label: "Manual",      cls: "restart-manual" },
+                    unplanned: { label: "⚠ Unplanned", cls: "restart-unplanned" },
+                    crash:     { label: "⚠ Crash",     cls: "restart-crash" },
+                };
+                const b = badges[r.reason] || { label: r.reason, cls: "restart-manual" };
+                lastRestart.innerHTML = `${ts} <span class="restart-badge ${b.cls}">${b.label}</span>`;
+            } else {
+                lastRestart.textContent = "--";
+            }
         }
 
         const list = document.getElementById("g-containers");
@@ -194,6 +293,26 @@ async function refreshGatewayInfo() {
             list.innerHTML = '<span class="text-muted" style="font-size:0.75rem;">No containers found</span>';
         }
     } catch (e) {}
+}
+
+// --- Y-fork merge bar positioning ---
+
+function positionForkBar() {
+    const opcuaNode = document.getElementById("pf-opcua");
+    const modbusNode = document.getElementById("pf-modbus");
+    const vbarWrap = document.getElementById("pf-y-vbar-wrap");
+    const vbar = document.getElementById("pf-y-vbar");
+    if (!opcuaNode || !modbusNode || !vbarWrap || !vbar) return;
+
+    const wrapRect = vbarWrap.getBoundingClientRect();
+    const opcuaRect = opcuaNode.getBoundingClientRect();
+    const modbusRect = modbusNode.getBoundingClientRect();
+
+    const topY = opcuaRect.top + opcuaRect.height / 2 - wrapRect.top;
+    const botY = modbusRect.top + modbusRect.height / 2 - wrapRect.top;
+
+    vbar.style.top = topY + "px";
+    vbar.style.height = (botY - topY) + "px";
 }
 
 // --- Helpers ---

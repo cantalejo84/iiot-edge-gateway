@@ -86,6 +86,7 @@ class MqttTailSubscriber:
         self._client = None
         self._thread_running = False
         self._lock = threading.Lock()
+        self._start_lock = threading.Lock()
         self._endpoint = None
         self._subscribe_topic = None
 
@@ -94,58 +95,59 @@ class MqttTailSubscriber:
         if not endpoint:
             return {"ok": False, "error": "MQTT endpoint is required"}
 
-        # If already running on same endpoint, keep going
-        if self._thread_running and self._endpoint == endpoint:
-            return {"ok": True, "message": "Already running"}
+        with self._start_lock:
+            # If already running on same endpoint, keep going
+            if self._thread_running and self._endpoint == endpoint:
+                return {"ok": True, "message": "Already running"}
 
-        # Stop existing connection if endpoint changed
-        if self._thread_running:
-            self.stop()
+            # Stop existing connection if endpoint changed
+            if self._thread_running:
+                self.stop()
 
-        host, port, use_tls = _parse_endpoint(endpoint)
-        self._endpoint = endpoint
+            host, port, use_tls = _parse_endpoint(endpoint)
+            self._endpoint = endpoint
 
-        # Convert Telegraf topic template to MQTT wildcard
-        # e.g. "iiot/gateway/{{ .Hostname }}/{{ .PluginName }}" -> "iiot/gateway/+/+"
-        topic_pattern = config.get("topic_pattern", "#")
-        subscribe_topic = (
-            re.sub(r"\{\{[^}]+\}\}", "+", topic_pattern) if topic_pattern else "#"
-        )
-        self._subscribe_topic = subscribe_topic
+            # Convert Telegraf topic template to MQTT wildcard
+            # e.g. "iiot/gateway/{{ .Hostname }}/{{ .PluginName }}" -> "iiot/gateway/+/+"
+            topic_pattern = config.get("topic_pattern", "#")
+            subscribe_topic = (
+                re.sub(r"\{\{[^}]+\}\}", "+", topic_pattern) if topic_pattern else "#"
+            )
+            self._subscribe_topic = subscribe_topic
 
-        client = mqtt.Client(
-            mqtt.CallbackAPIVersion.VERSION2, client_id="iiot-gateway-tail"
-        )
+            client = mqtt.Client(
+                mqtt.CallbackAPIVersion.VERSION2, client_id="iiot-gateway-tail"
+            )
 
-        def on_connect(c, userdata, flags, reason_code, properties=None):
-            if reason_code == 0:
-                c.subscribe(subscribe_topic, qos=0)
+            def on_connect(c, userdata, flags, reason_code, properties=None):
+                if reason_code == 0:
+                    c.subscribe(subscribe_topic, qos=0)
 
-        def on_message(c, userdata, msg):
-            payload = msg.payload.decode("utf-8", errors="replace")[:2048]
-            with self._lock:
-                self._messages.appendleft(
-                    {
-                        "timestamp": datetime.now(timezone.utc).isoformat(),
-                        "topic": msg.topic,
-                        "payload": payload,
-                    }
-                )
+            def on_message(c, userdata, msg):
+                payload = msg.payload.decode("utf-8", errors="replace")[:2048]
+                with self._lock:
+                    self._messages.appendleft(
+                        {
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                            "topic": msg.topic,
+                            "payload": payload,
+                        }
+                    )
 
-        client.on_connect = on_connect
-        client.on_message = on_message
+            client.on_connect = on_connect
+            client.on_message = on_message
 
-        if use_tls:
-            _configure_tls(client, certs_dir)
+            if use_tls:
+                _configure_tls(client, certs_dir)
 
-        try:
-            client.connect(host, port, keepalive=60)
-            client.loop_start()
-            self._client = client
-            self._thread_running = True
-            return {"ok": True, "message": f"Subscribed to {host}:{port}"}
-        except Exception as e:
-            return {"ok": False, "error": str(e)}
+            try:
+                client.connect(host, port, keepalive=60)
+                client.loop_start()
+                self._client = client
+                self._thread_running = True
+                return {"ok": True, "message": f"Subscribed to {host}:{port}"}
+            except Exception as e:
+                return {"ok": False, "error": str(e)}
 
     def stop(self):
         if self._client:

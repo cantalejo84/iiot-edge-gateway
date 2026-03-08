@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timezone
 
 from flask import Blueprint, current_app, jsonify, render_template
 
@@ -18,8 +19,20 @@ def dashboard_page():
     is_dirty = config_store.is_dirty()
     conf_path = os.path.join(current_app.config["TELEGRAF_OUTPUT_DIR"], "telegraf.conf")
     never_deployed = not os.path.isfile(conf_path)
+    cfg = config_store.load()
+    opcua_cfg = cfg.get("opcua", {})
+    modbus_cfg = cfg.get("modbus", {})
+    publishing = cfg.get("publishing", {})
+    opcua_ready = opcua_cfg.get("enabled", True)
+    modbus_ready = modbus_cfg.get("enabled", False)
+    grouped_mode = publishing.get("mode", "grouped") == "grouped"
     return render_template(
-        "dashboard.html", is_dirty=is_dirty, never_deployed=never_deployed
+        "dashboard.html",
+        is_dirty=is_dirty,
+        never_deployed=never_deployed,
+        opcua_ready=opcua_ready,
+        modbus_ready=modbus_ready,
+        grouped_mode=grouped_mode,
     )
 
 
@@ -35,7 +48,34 @@ def telegraf_status():
 
 @dashboard_bp.route("/api/dashboard/telegraf-metrics", methods=["GET"])
 def telegraf_metrics():
-    return jsonify(get_telegraf_metrics())
+    metrics = get_telegraf_metrics()
+
+    if metrics.pop("process_crash_detected", False):
+        event_log.log(
+            "error",
+            "telegraf",
+            "Process crash detected — data gap in collection",
+            detail="Telegraf restarted inside the container (entrypoint loop). Counters reset.",
+        )
+        config_store.record_restart(datetime.now(timezone.utc).isoformat(), "crash")
+
+    cfg = config_store.load()
+    metrics["nodes_configured"] = len(cfg.get("nodes", []))
+    # Zero out stale metrics for disabled inputs
+    opcua_enabled = cfg.get("opcua", {}).get("enabled", True)
+    modbus_enabled = cfg.get("modbus", {}).get("enabled", False)
+    if not opcua_enabled:
+        metrics["opcua_gathered"] = 0
+        metrics["opcua_scan_time_ms"] = 0
+        metrics["opcua_errors"] = 0
+        metrics["opcua_read_success"] = 0
+        metrics["opcua_read_error"] = 0
+    if not modbus_enabled:
+        metrics["modbus_gathered"] = 0
+        metrics["modbus_scan_time_ms"] = 0
+        metrics["modbus_errors"] = 0
+    metrics["any_input_active"] = opcua_enabled or modbus_enabled
+    return jsonify(metrics)
 
 
 @dashboard_bp.route("/api/dashboard/gateway-info", methods=["GET"])

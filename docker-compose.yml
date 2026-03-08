@@ -19,7 +19,7 @@ services:
       - telegraf
 
   telegraf:
-    image: telegraf:1.33
+    image: telegraf:1.37
     user: "0:0"
     entrypoint:
       - /bin/sh
@@ -48,6 +48,13 @@ services:
     build: ./test_infra/opcua_server
     ports:
       - "4840:4840"
+    restart: unless-stopped
+
+  modbus-demo-server:
+    build: ./test_infra/modbus_server
+    ports:
+      - "502:502"
+    user: "0:0"
     restart: unless-stopped
 
   mosquitto:

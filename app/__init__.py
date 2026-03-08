@@ -28,17 +28,36 @@ def create_app():
     os.makedirs(os.path.join(app.config["DATA_DIR"], "certs", "opcua"), exist_ok=True)
     os.makedirs(app.config["TELEGRAF_OUTPUT_DIR"], exist_ok=True)
 
+    from app.routes.configuration import configuration_bp
     from app.routes.dashboard import dashboard_bp
     from app.routes.help import help_bp
+    from app.routes.modbus import modbus_bp
     from app.routes.mqtt import mqtt_bp
     from app.routes.opcua import opcua_bp
     from app.routes.telegraf import telegraf_bp
 
     app.register_blueprint(opcua_bp)
+    app.register_blueprint(modbus_bp)
     app.register_blueprint(mqtt_bp)
     app.register_blueprint(telegraf_bp)
+    app.register_blueprint(configuration_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(help_bp)
+
+    @app.context_processor
+    def inject_input_status():
+        from app.services import config_store as cs
+
+        cfg = cs.load()
+        opcua_cfg = cfg.get("opcua", {})
+        return {
+            "opcua_ready": opcua_cfg.get("enabled", True)
+            and len(cfg.get("nodes", [])) > 0,
+            "modbus_ready": cfg.get("modbus", {}).get("enabled", False)
+            and len(cfg.get("modbus", {}).get("registers", [])) > 0,
+            "grouped_mode": cfg.get("publishing", {}).get("mode", "individual")
+            == "grouped",
+        }
 
     @app.route("/")
     def index():

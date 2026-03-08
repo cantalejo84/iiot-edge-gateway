@@ -23,6 +23,11 @@
         </button>
     </li>
     <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-modbus" type="button">
+            <i class="bi bi-ethernet"></i> Modbus TCP
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
         <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-mqtt" type="button">
             <i class="bi bi-cloud-arrow-up"></i> MQTT &amp; Cloud
         </button>
@@ -49,13 +54,15 @@
                 <div class="help-section">
                     <h2 class="help-h2">What is IIoT Edge Gateway?</h2>
                     <p class="help-p">
-                        IIoT Edge Gateway is a self-hosted web application that connects industrial machines
-                        (via OPC UA) to cloud IoT platforms (via MQTT). It runs on your edge hardware — a server,
-                        industrial PC, or Raspberry Pi — and bridges the gap between your factory floor and the cloud.
+                        IIoT Edge Gateway is a self-hosted web application that collects data from industrial machines
+                        and publishes it to cloud IoT platforms via MQTT. It supports two industrial protocols as inputs:
+                        <strong>OPC UA</strong> (modern, object-oriented, secure) and <strong>Modbus TCP</strong> (legacy, widely available in PLCs and sensors).
+                        Both can run simultaneously.
                     </p>
                     <p class="help-p">
-                        You configure everything through a web UI. The gateway generates and manages a
-                        <strong>Telegraf</strong> configuration that does the actual data collection and publishing.
+                        It runs on your edge hardware — a server, industrial PC, or Raspberry Pi — and bridges the gap
+                        between your factory floor and the cloud. You configure everything through a web UI. The gateway
+                        generates and manages a <strong>Telegraf</strong> configuration that does the actual data collection and publishing.
                     </p>
                 </div>
 
@@ -63,64 +70,71 @@
                     <h2 class="help-h2">Data Flow</h2>
                     <div class="help-diagram">
 <pre>
-  ┌─────────────────┐     OPC UA      ┌───────────────────┐     MQTT      ┌──────────────────┐
-  │  PLC / SCADA /  │ ─────────────►  │  IIoT Edge        │ ────────────► │  AWS IoT Core    │
-  │  OPC UA Server  │                 │  Gateway           │               │  Azure IoT Hub   │
-  └─────────────────┘                 │  (Telegraf agent)  │               │  Any MQTT Broker │
-                                      └───────────────────┘               └──────────────────┘
-                                              │
-                                      ┌───────┴───────┐
-                                      │  Web UI       │
-                                      │  :8050        │
-                                      └───────────────┘
+  ┌─────────────────┐  OPC UA  ┐
+  │  PLC / SCADA /  │ ────────►│                          MQTT      ┌──────────────────┐
+  │  OPC UA Server  │          ├──► IIoT Edge Gateway  ───────────► │  AWS IoT Core    │
+  └─────────────────┘          │    (Telegraf agent)                │  Azure IoT Hub   │
+                               │                                    │  Any MQTT Broker │
+  ┌─────────────────┐  Modbus  │                                    └──────────────────┘
+  │  PLC / RTU /    │ ────────►│
+  │  Modbus Device  │          ┘
+  └─────────────────┘
 </pre>
                     </div>
                 </div>
 
                 <div class="help-section">
-                    <h2 class="help-h2">Setup in 6 steps</h2>
+                    <h2 class="help-h2">Setup steps</h2>
+                    <p class="help-p">Configure the inputs you need (OPC UA, Modbus, or both), then set up the MQTT output and deploy.</p>
 
                     <div class="help-steps">
                         <div class="help-step">
                             <div class="help-step-num">1</div>
                             <div class="help-step-body">
-                                <div class="help-step-title">Connect to your OPC UA server</div>
-                                <div class="help-step-desc">Go to <strong>OPC UA Config → Connection</strong>. Enter the endpoint of your OPC UA server (e.g. <code>opc.tcp://192.168.1.100:4840</code>) and configure authentication. Hit <strong>Test Connection</strong> to verify.</div>
+                                <div class="help-step-title">Connect to your OPC UA server <span class="badge bg-secondary" style="font-size:0.65rem;font-weight:500;">optional</span></div>
+                                <div class="help-step-desc">Go to <strong>OPC UA → Connection</strong>. Enter the server endpoint (e.g. <code>opc.tcp://192.168.1.100:4840</code>) and configure authentication. Hit <strong>Test Connection</strong> to verify. Enable the input with the Active toggle.</div>
                             </div>
                         </div>
                         <div class="help-step">
                             <div class="help-step-num">2</div>
                             <div class="help-step-body">
-                                <div class="help-step-title">Browse the node tree</div>
+                                <div class="help-step-title">Browse and select OPC UA nodes <span class="badge bg-secondary" style="font-size:0.65rem;font-weight:500;">optional</span></div>
                                 <div class="help-step-desc">Go to <strong>Browse Nodes</strong>. Expand the address space to find your machine's variables — temperatures, pressures, speeds, counters. Click any node to inspect its details and add it to your selection.</div>
                             </div>
                         </div>
                         <div class="help-step">
                             <div class="help-step-num">3</div>
                             <div class="help-step-body">
-                                <div class="help-step-title">Configure polling</div>
-                                <div class="help-step-desc">In <strong>Node Selection</strong>, set the sampling interval for each variable. Use deadband filters to avoid publishing redundant values when a signal is stable.</div>
+                                <div class="help-step-title">Configure OPC UA acquisition <span class="badge bg-secondary" style="font-size:0.65rem;font-weight:500;">optional</span></div>
+                                <div class="help-step-desc">In <strong>Acquisition</strong>, choose Polling or Subscription mode and set the scan rate. Choose Individual or Grouped message format depending on how your cloud consumer expects the data.</div>
                             </div>
                         </div>
                         <div class="help-step">
                             <div class="help-step-num">4</div>
                             <div class="help-step-body">
-                                <div class="help-step-title">Set up your MQTT output</div>
-                                <div class="help-step-desc">Go to <strong>MQTT Config → Connection</strong>. Enter your broker endpoint. For AWS IoT Core or Azure IoT Hub, upload your TLS certificates and use the auto-generate buttons for cloud-specific configuration.</div>
+                                <div class="help-step-title">Connect to your Modbus device <span class="badge bg-secondary" style="font-size:0.65rem;font-weight:500;">optional</span></div>
+                                <div class="help-step-desc">Go to <strong>Modbus TCP → Connection</strong>. Enter the device IP and port (default 502), slave ID, and poll interval. Enable the input with the Active toggle. Add the registers you want to read in the Register Map below.</div>
                             </div>
                         </div>
                         <div class="help-step">
                             <div class="help-step-num">5</div>
+                            <div class="help-step-body">
+                                <div class="help-step-title">Set up your MQTT output</div>
+                                <div class="help-step-desc">Go to <strong>MQTT → Connection</strong>. Enter your broker endpoint. For AWS IoT Core or Azure IoT Hub, upload your TLS certificates. Use the <strong>Demo</strong> button to quick-fill the built-in Mosquitto broker for testing.</div>
+                            </div>
+                        </div>
+                        <div class="help-step">
+                            <div class="help-step-num">6</div>
                             <div class="help-step-body">
                                 <div class="help-step-title">Deploy</div>
                                 <div class="help-step-desc">Click <strong>Deploy config</strong> in the sidebar. The gateway generates <code>telegraf.conf</code> and restarts the Telegraf agent. The status badge changes to <em>Config synced</em>.</div>
                             </div>
                         </div>
                         <div class="help-step">
-                            <div class="help-step-num">6</div>
+                            <div class="help-step-num">7</div>
                             <div class="help-step-body">
                                 <div class="help-step-title">Verify on the Dashboard</div>
-                                <div class="help-step-desc">The <strong>Dashboard</strong> shows live pipeline health — OPC UA reads, buffer usage, and MQTT delivery. Use <strong>View Messages</strong> to see the actual payloads arriving at your broker in real time.</div>
+                                <div class="help-step-desc">The <strong>Dashboard</strong> shows live pipeline health — OPC UA reads, Modbus reads, buffer usage, and MQTT delivery. Use <strong>View Messages</strong> to see the actual payloads arriving at your broker in real time.</div>
                             </div>
                         </div>
                     </div>
@@ -129,17 +143,17 @@
                 <div class="help-section">
                     <h2 class="help-h2">Try it with the demo servers</h2>
                     <p class="help-p">
-                        The stack includes a demo OPC UA server and a Mosquitto broker so you can test
-                        the full pipeline without any external services.
+                        The stack includes a demo OPC UA server, a demo Modbus TCP server, and a Mosquitto broker
+                        so you can test the full pipeline without any external hardware or services.
                     </p>
                     <div class="help-callout help-callout-info">
                         <div class="help-callout-title"><i class="bi bi-lightning-fill"></i> Quick demo</div>
                         <ol class="mb-0" style="padding-left:1.2rem; font-size:0.82rem;">
-                            <li>OPC UA Config → Connection → click <strong>Use Demo Server</strong></li>
-                            <li>Browse Nodes → expand the tree → add some variables</li>
-                            <li>MQTT Config → Connection → click <strong>Use MQTT Broker Demo</strong></li>
+                            <li>OPC UA → Connection → click <strong>Use Demo Server</strong>, then browse and add nodes</li>
+                            <li>Modbus TCP → Connection → click <strong>Use Demo Server</strong> (pre-fills registers)</li>
+                            <li>MQTT → Connection → click <strong>Demo</strong></li>
                             <li>Click <strong>Deploy config</strong></li>
-                            <li>MQTT Config → View Messages → click <strong>Start</strong></li>
+                            <li>MQTT → View Messages → click <strong>Start</strong></li>
                         </ol>
                     </div>
                 </div>
@@ -161,7 +175,7 @@
                     <h2 class="help-h2">Requirements</h2>
                     <ul class="help-list">
                         <li><i class="bi bi-check2"></i> Docker + Docker Compose</li>
-                        <li><i class="bi bi-check2"></i> A reachable OPC UA server</li>
+                        <li><i class="bi bi-check2"></i> An OPC UA server, a Modbus TCP device, or both</li>
                         <li><i class="bi bi-check2"></i> An MQTT broker (cloud or local)</li>
                         <li><i class="bi bi-check2"></i> Port 8050 open on the gateway host</li>
                     </ul>
@@ -207,7 +221,11 @@
                         <tbody>
                             <tr>
                                 <td><strong>OPC UA Read</strong></td>
-                                <td>Number of data points collected from the OPC UA server in the last Telegraf cycle. Sourced from <code>internal_write.metrics_added</code>.</td>
+                                <td>Running total of data points collected from the OPC UA server since Telegraf last started.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Modbus Read</strong></td>
+                                <td>Running total of register values collected from the Modbus device since Telegraf last started.</td>
                             </tr>
                             <tr>
                                 <td><strong>Buffer</strong></td>
@@ -215,30 +233,34 @@
                             </tr>
                             <tr>
                                 <td><strong>MQTT Send</strong></td>
-                                <td>Messages confirmed as delivered to the broker in the last cycle. Sourced from <code>internal_write.metrics_written</code>.</td>
+                                <td>Running total of messages confirmed as delivered to the broker since Telegraf last started.</td>
                             </tr>
                             <tr>
                                 <td><strong>Scan Time</strong></td>
-                                <td>Duration of the last OPC UA read cycle in milliseconds. High values may indicate a slow or overloaded OPC UA server.</td>
+                                <td>Duration of the last OPC UA or Modbus read cycle in milliseconds. High values may indicate a slow or overloaded device.</td>
                             </tr>
                             <tr>
                                 <td><strong>Dropped</strong></td>
                                 <td>Messages that were collected but never sent (buffer overflow or connection failure). Should stay at 0 in normal operation.</td>
                             </tr>
                             <tr>
-                                <td><strong>Errors</strong></td>
-                                <td>Number of failed OPC UA read attempts in the last cycle.</td>
-                            </tr>
-                            <tr>
                                 <td><strong>Loss Rate</strong></td>
-                                <td>Percentage of reads that resulted in an error: <code>(errors / total) × 100</code>. A non-zero value means your OPC UA server is returning bad quality data.</td>
+                                <td>Percentage of data that did not reach MQTT: <code>(collected − sent) / collected × 100</code>. Should be 0% in normal operation.</td>
                             </tr>
                         </tbody>
                     </table>
 
+                    <div class="help-callout help-callout-info mt-3">
+                        <div class="help-callout-title"><i class="bi bi-info-circle-fill"></i> Understanding the counters</div>
+                        <p style="margin-bottom:0.5rem;">All three counters (OPC UA Read, Modbus Read, MQTT Send) are <strong>running totals</strong> that grow continuously while Telegraf is running. They are not per-second rates. A healthy pipeline looks like steadily increasing numbers.</p>
+                        <p style="margin-bottom:0.5rem;">The counters <strong>reset to zero</strong> when Telegraf restarts (e.g. after deploying a new config). This is normal.</p>
+                        <p style="margin-bottom:0.5rem;">In <strong>Individual mode</strong>, each OPC UA node and Modbus register produces one message per cycle, so <em>OPC UA Read + Modbus Read ≈ MQTT Send</em>.</p>
+                        <p style="margin-bottom:0;">In <strong>Grouped mode</strong>, all OPC UA nodes are merged into a single message per cycle before being sent. This means MQTT Send will be much lower than OPC UA Read — this is expected and not a problem.</p>
+                    </div>
+
                     <div class="help-callout help-callout-tip mt-3">
-                        <div class="help-callout-title"><i class="bi bi-info-circle-fill"></i> Zero reads?</div>
-                        If OPC UA Read and MQTT Send both show 0, check that Telegraf is running (STATE section in the sidebar) and that you have deployed the config after selecting nodes.
+                        <div class="help-callout-title"><i class="bi bi-lightbulb-fill"></i> Counters stuck at 0?</div>
+                        Check that Telegraf is running (STATE section in the sidebar) and that you have deployed the config after selecting nodes.
                     </div>
                 </div>
 
@@ -448,22 +470,53 @@
                 </div>
 
                 <div class="help-section">
-                    <h2 class="help-h2">Node Selection</h2>
-                    <p class="help-p">The Node Selection page shows all variables you've added and lets you configure how each one is sampled.</p>
+                    <h2 class="help-h2">Acquisition Mode</h2>
+                    <p class="help-p">Before selecting nodes, choose how Telegraf collects data from the OPC UA server. This setting applies to all nodes equally.</p>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="help-card">
+                                <div class="help-card-title"><i class="bi bi-arrow-repeat"></i> Polling</div>
+                                <p>Telegraf actively reads all selected nodes at a fixed <strong>Scan Rate</strong> (e.g. every 30s). Data is published to MQTT at regular, predictable intervals. Best for most industrial use cases.</p>
+                                <ul class="help-list">
+                                    <li><strong>Scan Rate</strong> — how often Telegraf reads and publishes all nodes</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="help-card">
+                                <div class="help-card-title"><i class="bi bi-bell"></i> Subscription</div>
+                                <p>The OPC UA server monitors nodes and pushes notifications to Telegraf when values change. Publish rate is <strong>not fixed</strong> — it depends on how often variables change.</p>
+                                <ul class="help-list">
+                                    <li><strong>Sampling Interval</strong> — how often the server checks each node for changes</li>
+                                    <li><strong>Queue Size</strong> — notifications buffered per node between Telegraf reads</li>
+                                    <li><strong>Data Change Filter</strong> — conditions that trigger a notification</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
 
                     <table class="help-table">
-                        <thead><tr><th>Setting</th><th>Description</th></tr></thead>
+                        <thead><tr><th>Aspect</th><th>Polling</th><th>Subscription</th></tr></thead>
                         <tbody>
-                            <tr><td>Sampling interval</td><td>How often Telegraf reads this variable from the OPC UA server. <code>1s</code> = every second, <code>500ms</code> = twice per second.</td></tr>
-                            <tr><td>Deadband type</td><td><strong>None</strong> — publish every reading. <strong>Absolute</strong> — only publish when the value changes by more than X units. <strong>Percent</strong> — only publish when the change exceeds X% of the value range.</td></tr>
-                            <tr><td>Deadband value</td><td>The threshold for the deadband filter. For Absolute: engineering units. For Percent: 0–100.</td></tr>
+                            <tr><td>Publish rate</td><td>Fixed (scan rate)</td><td>Variable (on change)</td></tr>
+                            <tr><td>Server load</td><td>Higher — constant reads</td><td>Lower — server filters changes</td></tr>
+                            <tr><td>Best for</td><td>Regular reporting, dashboards</td><td>Event-driven, high-frequency signals</td></tr>
+                            <tr><td>Grouped mode</td><td>✓ Fully supported</td><td>✓ Supported</td></tr>
                         </tbody>
                     </table>
 
-                    <div class="help-callout help-callout-tip mt-3">
-                        <div class="help-callout-title"><i class="bi bi-lightbulb-fill"></i> Deadband tip</div>
-                        Use deadband filters for slowly-changing signals like temperature or pressure. A deadband of 0.5°C prevents flooding your broker with identical readings when a machine is in a stable state.
+                    <div class="help-callout help-callout-info mt-3">
+                        <div class="help-callout-title"><i class="bi bi-info-circle-fill"></i> Data Change Filter (Subscription)</div>
+                        <strong>Trigger:</strong> <em>StatusValue</em> (recommended) notifies when the value or its quality changes. <em>Status</em> notifies on quality changes only. <em>StatusValueTimestamp</em> notifies on any change including the server timestamp.<br>
+                        <strong>Deadband:</strong> filters out noise. <em>Absolute</em> — only notify if the value changes by more than N engineering units. <em>Percent</em> — only notify if the change exceeds N% of the value range. Useful for slowly-changing analog signals like temperature or pressure.
                     </div>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Node Selection</h2>
+                    <p class="help-p">The Node Selection page shows all OPC UA variables you've added. You can rename each node (the name used in the MQTT payload) and remove nodes you no longer need.</p>
+                    <p class="help-p">Sampling rate and filtering are configured globally in the <strong>Acquisition Mode</strong> card above the node list — all nodes share the same configuration.</p>
                 </div>
 
                 <div class="help-section">
@@ -500,17 +553,11 @@
                         <thead><tr><th>Aspect</th><th>Individual</th><th>Grouped</th></tr></thead>
                         <tbody>
                             <tr><td>Messages per cycle</td><td>1 per node</td><td>1 total</td></tr>
-                            <tr><td>Per-node intervals</td><td>Respected</td><td>Replaced by group interval</td></tr>
-                            <tr><td>Sampling mode</td><td>Polling or Subscription</td><td>Polling only</td></tr>
+                            <tr><td>Acquisition mode</td><td>Polling or Subscription</td><td>Polling or Subscription</td></tr>
                             <tr><td>Telegraf config</td><td><code>[[inputs.opcua.nodes]]</code></td><td><code>[[inputs.opcua.group]]</code></td></tr>
                             <tr><td>Best for</td><td>Per-variable routing, filtering</td><td>Dashboards, InfluxDB, time-series</td></tr>
                         </tbody>
                     </table>
-
-                    <div class="help-callout help-callout-warning mt-3">
-                        <div class="help-callout-title"><i class="bi bi-exclamation-triangle-fill"></i> Grouped mode and Subscription</div>
-                        In Grouped mode, Telegraf uses <code>[[inputs.opcua.group]]</code> which reads all nodes together at the configured group interval. Subscription mode (server-push) is not compatible with grouping because different nodes may update at different times — the group packet would never be complete. Grouped mode always uses polling.
-                    </div>
                 </div>
 
             </div>
@@ -553,6 +600,121 @@ ns=2;s=MyTag    (string)
 ns=2;g=abc-...  (guid)</code>
                         <p style="font-size:0.78rem;margin-top:0.5rem;">The browser fills these in automatically when you select a node.</p>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── MODBUS TCP ────────────────────────────────────────────── -->
+    <div class="tab-pane fade" id="tab-modbus">
+        <div class="row g-4">
+            <div class="col-lg-8">
+
+                <div class="help-section">
+                    <h2 class="help-h2">What is Modbus TCP?</h2>
+                    <p class="help-p">
+                        Modbus is the most widespread protocol in industrial automation. Virtually every PLC, VFD
+                        (variable frequency drive), energy meter, and legacy sensor supports it.
+                        <strong>Modbus TCP</strong> runs Modbus over a standard Ethernet network on port 502.
+                    </p>
+                    <p class="help-p">
+                        Unlike OPC UA, Modbus has <strong>no autodiscovery</strong>. You must know the register map
+                        of your device — this information is in the device manual or datasheet.
+                    </p>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Register types</h2>
+                    <table class="help-table">
+                        <thead><tr><th>Type</th><th>Access</th><th>Size</th><th>Use case</th></tr></thead>
+                        <tbody>
+                            <tr><td><code>holding</code></td><td>Read / Write</td><td>16-bit</td><td>Setpoints, parameters, most analog values</td></tr>
+                            <tr><td><code>input</code></td><td>Read only</td><td>16-bit</td><td>Measurements from sensors</td></tr>
+                            <tr><td><code>coil</code></td><td>Read / Write</td><td>1-bit</td><td>Digital outputs (relay states)</td></tr>
+                            <tr><td><code>discrete</code></td><td>Read only</td><td>1-bit</td><td>Digital inputs (switches, alarms)</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Addressing — the 0-based vs 1-based trap</h2>
+                    <p class="help-p">
+                        Modbus device manuals typically show <strong>1-based addresses</strong> like
+                        <code>40001</code> (first holding register). Telegraf uses <strong>0-based addresses</strong>.
+                    </p>
+                    <div class="help-callout-warning">
+                        <strong>Rule:</strong> subtract 1 from the manual address and drop the leading 4 (for holding).
+                        <br>Manual says <code>40001</code> → enter address <code>0</code>.
+                        <br>Manual says <code>40003</code> → enter address <code>2</code>.
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Data types and register count</h2>
+                    <table class="help-table">
+                        <thead><tr><th>Data Type</th><th>Registers used</th><th>Description</th></tr></thead>
+                        <tbody>
+                            <tr><td>UINT16 / INT16</td><td>1</td><td>16-bit unsigned / signed integer</td></tr>
+                            <tr><td>UINT32 / INT32</td><td>2</td><td>32-bit unsigned / signed integer</td></tr>
+                            <tr><td>FLOAT32</td><td>2</td><td>32-bit IEEE 754 float (most common for analog)</td></tr>
+                            <tr><td>FLOAT64</td><td>4</td><td>64-bit double precision float</td></tr>
+                            <tr><td>BOOL</td><td>1</td><td>Boolean (coil / discrete)</td></tr>
+                        </tbody>
+                    </table>
+                    <p class="help-p">
+                        Multi-register types must use consecutive addresses. If temperature is FLOAT32 at address 0,
+                        it occupies registers 0 and 1 — the next field must start at address 2 or higher.
+                    </p>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Byte order</h2>
+                    <p class="help-p">
+                        Multi-register values can be stored in different byte orders depending on the device manufacturer.
+                        Check your device manual — most modern PLCs use <strong>ABCD (Big Endian)</strong>.
+                    </p>
+                    <table class="help-table">
+                        <thead><tr><th>Order</th><th>Also known as</th><th>Common in</th></tr></thead>
+                        <tbody>
+                            <tr><td>ABCD</td><td>Big Endian</td><td>Siemens, most modern PLCs</td></tr>
+                            <tr><td>DCBA</td><td>Little Endian</td><td>Some older Schneider devices</td></tr>
+                            <tr><td>BADC</td><td>Mid-Big Endian</td><td>Some ABB and Modicon devices</td></tr>
+                            <tr><td>CDAB</td><td>Mid-Little Endian</td><td>Some energy meters</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="help-section">
+                    <h2 class="help-h2">Reading from OPC UA and Modbus simultaneously</h2>
+                    <p class="help-p">
+                        Both inputs can be active at the same time. Telegraf runs them in parallel and publishes
+                        everything to the same MQTT topic stream. The dashboard Pipeline Health section shows
+                        each source separately when both are configured.
+                    </p>
+                    <div class="help-diagram">
+<pre>OPC UA ──┐
+          ├──► Telegraf buffer ──► MQTT ──► Cloud
+Modbus ──┘</pre>
+                    </div>
+                </div>
+
+            </div>
+            <div class="col-lg-4">
+                <div class="help-callout-info">
+                    <strong>Demo server included</strong><br>
+                    Click <em>Use Demo Server</em> on the Modbus TCP config page to connect to the built-in
+                    simulator. It exposes 5 FLOAT32 holding registers (temperature, pressure, motor speed,
+                    voltage, current) that update every 2 seconds.
+                </div>
+                <div class="help-callout-tip mt-3">
+                    <strong>Can't connect?</strong><br>
+                    Check: firewall rules on port 502, slave ID matches the device (default 1),
+                    and the device is in <em>server</em> (not master) mode.
+                </div>
+                <div class="help-callout-warning mt-3">
+                    <strong>Addresses are 0-based</strong><br>
+                    Always subtract 1 from the address shown in the device manual when the manual uses
+                    1-based notation (40001, 40002…).
                 </div>
             </div>
         </div>
@@ -885,8 +1047,9 @@ docker compose up --build -d gateway</code>
                     <table class="help-table">
                         <thead><tr><th>Metric</th><th>Source</th></tr></thead>
                         <tbody>
-                            <tr><td>OPC UA Read</td><td><code>internal_write.metrics_added</code> — messages queued for MQTT per cycle</td></tr>
-                            <tr><td>MQTT Send</td><td><code>internal_write.metrics_written</code> — messages confirmed by the broker</td></tr>
+                            <tr><td>OPC UA Read</td><td><code>internal_gather.metrics_gathered</code> (input=opcua) — cumulative total since Telegraf started</td></tr>
+                            <tr><td>Modbus Read</td><td><code>internal_gather.metrics_gathered</code> (input=modbus) — cumulative total since Telegraf started</td></tr>
+                            <tr><td>MQTT Send</td><td><code>internal_write.metrics_written</code> (output=mqtt) — cumulative total since Telegraf started</td></tr>
                             <tr><td>Dropped</td><td>Messages buffered but not yet sent</td></tr>
                             <tr><td>Scan Time</td><td>Duration of each OPC UA read cycle</td></tr>
                             <tr><td>Loss Rate</td><td>(Errors / Total reads) × 100</td></tr>

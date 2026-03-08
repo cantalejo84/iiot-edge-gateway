@@ -47,7 +47,8 @@
                 <li class="nav-section-label nav-section-input">INPUT</li>
                 <li class="nav-item">
                     <a class="nav-link {% if request.path.startswith('/opcua') %}active{% endif %}" href="/opcua/config">
-                        <i class="bi bi-plug"></i> OPC UA Config
+                        <i class="bi bi-plug"></i> OPC UA
+                        <span class="nav-input-dot {% if opcua_ready %}dot-ready{% endif %}" title="{% if opcua_ready %}Nodes configured{% else %}No nodes selected{% endif %}"></span>
                     </a>
                 </li>
                 <li class="nav-item nav-child">
@@ -62,13 +63,24 @@
                 </li>
                 <li class="nav-item nav-child">
                     <a class="nav-link {% if request.path == '/opcua/nodes' %}active{% endif %}" href="/opcua/nodes">
-                        <i class="bi bi-check2-square"></i> Node Selection
+                        <i class="bi bi-sliders"></i> Acquisition
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.path.startswith('/modbus') %}active{% endif %}" href="/modbus/config">
+                        <i class="bi bi-ethernet"></i> Modbus TCP
+                        <span class="nav-input-dot {% if modbus_ready %}dot-ready{% endif %}" title="{% if modbus_ready %}Registers configured{% else %}Not configured{% endif %}"></span>
+                    </a>
+                </li>
+                <li class="nav-item nav-child">
+                    <a class="nav-link {% if request.path == '/modbus/config' %}active{% endif %}" href="/modbus/config">
+                        <i class="bi bi-hdd-network"></i> Connection
                     </a>
                 </li>
                 <li class="nav-section-label nav-section-output">OUTPUT</li>
                 <li class="nav-item">
                     <a class="nav-link {% if request.path.startswith('/mqtt') %}active{% endif %}" href="/mqtt/config">
-                        <i class="bi bi-cloud-arrow-up"></i> MQTT Config
+                        <i class="bi bi-cloud-arrow-up"></i> MQTT
                     </a>
                 </li>
                 <li class="nav-item nav-child">
@@ -83,8 +95,8 @@
                 </li>
                 <li class="nav-section-label nav-section-system">SYSTEM</li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#" data-action="preview-config">
-                        <i class="bi bi-file-earmark-code"></i> Preview Config
+                    <a class="nav-link {% if request.path == '/configuration' %}active{% endif %}" href="/configuration">
+                        <i class="bi bi-file-earmark-code"></i> Configuration
                     </a>
                 </li>
                 <li class="nav-item">
@@ -134,7 +146,13 @@
         </nav>
 
         <!-- Main content -->
-        <main class="main-content flex-grow-1">
+        <main class="main-content flex-grow-1" style="position: relative;">
+            <div id="main-overlay" class="main-overlay d-none">
+                <div class="main-overlay-inner">
+                    <span class="loading-spinner me-2"></span>
+                    <span id="main-overlay-msg">Deploying config&hellip;</span>
+                </div>
+            </div>
             <div class="content-header d-flex justify-content-between align-items-center mb-4">
                 <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
                 <div class="d-flex align-items-center gap-2">
@@ -151,27 +169,6 @@
 
             {% block content %}{% endblock %}
         </main>
-    </div>
-
-    <!-- Config Preview Modal -->
-    <div class="modal fade" id="configPreviewModal" tabindex="-1">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="bi bi-file-earmark-code"></i> telegraf.conf Preview</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <pre id="config-preview-content" class="config-preview"></pre>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" id="btn-apply-from-preview">
-                        <i class="bi bi-gear-wide-connected"></i> Apply Config
-                    </button>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Logs Modal -->
@@ -222,7 +219,13 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ui-helpers.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/nav-lock.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/agent.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/logs.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app-init.js') }}"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

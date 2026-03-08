@@ -1,10 +1,13 @@
 import copy
 import json
+import logging
 import os
 import threading
 from datetime import datetime, timezone
 
 from app.config import DEFAULT_CONFIG
+
+logger = logging.getLogger(__name__)
 
 _lock = threading.Lock()
 
@@ -20,8 +23,12 @@ def load():
         path = _config_path()
         if not os.path.exists(path):
             return copy.deepcopy(DEFAULT_CONFIG)
-        with open(path, "r") as f:
-            return json.load(f)
+        try:
+            with open(path, "r") as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            logger.error("config.json is corrupted, returning defaults")
+            return copy.deepcopy(DEFAULT_CONFIG)
 
 
 def save(config):
@@ -29,9 +36,12 @@ def save(config):
         config["_meta"]["last_modified"] = datetime.now(timezone.utc).isoformat()
         path = _config_path()
         tmp_path = path + ".tmp"
-        with open(tmp_path, "w") as f:
-            json.dump(config, f, indent=2)
-        os.replace(tmp_path, path)
+        try:
+            with open(tmp_path, "w") as f:
+                json.dump(config, f, indent=2)
+            os.replace(tmp_path, path)
+        except OSError:
+            logger.error("Failed to write config.json")
 
 
 def get_section(section):
@@ -75,6 +85,31 @@ def get_applied_section(section):
     if key in meta:
         return meta[key]
     return config.get(section, {})
+
+
+def record_restart(started_at_iso, reason):
+    """Store the last Telegraf container restart with its cause.
+
+    reason: "deploy" | "manual" | "unplanned"
+    Does NOT touch last_modified to avoid marking config as dirty.
+    """
+    with _lock:
+        path = _config_path()
+        if not os.path.exists(path):
+            return
+        try:
+            with open(path, "r") as f:
+                config = json.load(f)
+            config["_meta"]["last_restart"] = {
+                "started_at": started_at_iso,
+                "reason": reason,
+            }
+            tmp_path = path + ".tmp"
+            with open(tmp_path, "w") as f:
+                json.dump(config, f, indent=2)
+            os.replace(tmp_path, path)
+        except Exception:
+            logger.error("Failed to record telegraf restart")
 
 
 def is_dirty():

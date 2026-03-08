@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block page_title %}Modbus TCP{% endblock %}
+
+{% block content %}
+
+<div class="row g-4">
+    <!-- Left column: Connection Settings -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Connection Settings</span>
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-info-circle text-muted hint-icon"
+                       data-bs-toggle="tooltip"
+                       title="Disabling does not delete your configuration. Changes take effect after Deploy config."></i>
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" id="modbus-enabled-toggle" role="switch"
+                               {% if config.enabled %}checked{% endif %}>
+                        <label class="form-check-label" for="modbus-enabled-toggle" style="font-size:0.8rem;">Active</label>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-3">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Controller <span class="text-muted" style="font-size:0.75rem;">(host:port)</span></label>
+                        <input type="text" class="form-control form-control-sm" id="modbus-controller"
+                            value="{{ config.controller }}" placeholder="192.168.1.100:502">
+                        <div class="form-text">IP address and port of the Modbus TCP device</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Slave ID</label>
+                        <input type="number" class="form-control form-control-sm" id="modbus-slave-id"
+                            value="{{ config.slave_id }}" min="1" max="247">
+                        <div class="form-text">Device address (1–247)</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Timeout</label>
+                        <input type="text" class="form-control form-control-sm" id="modbus-timeout"
+                            value="{{ config.timeout }}" placeholder="5s">
+                        <div class="form-text">Connection timeout (e.g. 5s)</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Poll Interval</label>
+                        <input type="text" class="form-control form-control-sm" id="modbus-poll-interval"
+                            value="{{ config.poll_interval or '10s' }}" placeholder="10s">
+                        <div class="form-text">How often to read registers (e.g. 10s, 30s, 1m)</div>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <span id="save-indicator" class="text-secondary" style="font-family: var(--font-mono); font-size: 0.7rem;"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right column: Actions -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">Actions</div>
+            <div class="card-body p-3">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-secondary" id="btn-test-connection">
+                        <i class="bi bi-plug"></i> Test Connection
+                    </button>
+                    <div id="test-result" class="test-result"></div>
+                    <button class="btn btn-outline-secondary" id="btn-demo-fill">
+                        <i class="bi bi-lightning"></i> Use Demo Server
+                    </button>
+                    <details class="demo-info-block">
+                        <summary><i class="bi bi-info-circle"></i> About this demo server</summary>
+                        <div class="demo-info-body">
+                            <div class="demo-info-row"><span class="demo-info-key">Library</span><span>pymodbus 3.7.4</span></div>
+                            <div class="demo-info-row"><span class="demo-info-key">Endpoint</span><code>modbus-demo-server:502</code></div>
+                            <div class="demo-info-row"><span class="demo-info-key">Slave ID</span><span>1</span></div>
+                            <div class="demo-info-row"><span class="demo-info-key">Type</span><span>Holding registers · FLOAT32-IEEE · ABCD</span></div>
+                            <div class="demo-info-row"><span class="demo-info-key">Update rate</span><span>2 s</span></div>
+                            <div class="demo-info-divider">Register map (0-based addresses)</div>
+                            <div class="demo-info-row"><span class="demo-info-key">addr 0–1</span><span>temperature · 20–30 °C</span></div>
+                            <div class="demo-info-row"><span class="demo-info-key">addr 2–3</span><span>pressure · 1–5 bar</span></div>
+                            <div class="demo-info-row"><span class="demo-info-key">addr 4–5</span><span>motor_speed · 1000–1500 RPM</span></div>
+                            <div class="demo-info-row"><span class="demo-info-key">addr 6–7</span><span>voltage · 220–240 V</span></div>
+                            <div class="demo-info-row"><span class="demo-info-key">addr 8–9</span><span>current · 5–15 A</span></div>
+                        </div>
+                    </details>
+                    <div class="mqtt-actions-divider"></div>
+                    <button class="btn btn-outline-secondary" id="btn-clear-modbus">
+                        <i class="bi bi-trash"></i> Clear configuration
+                    </button>
+                </div>
+                <p class="text-muted mt-2 mb-0" style="font-size:0.75rem;">
+                    Clears connection settings and all registers.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Register Map -->
+<div class="card mt-4 mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-table"></i> Register Map</span>
+        <button class="btn btn-sm btn-outline-primary" id="btn-add-register">
+            <i class="bi bi-plus-lg"></i> Add Register
+        </button>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm mb-0" id="register-table">
+                <thead>
+                    <tr>
+                        <th style="width:20%">Name</th>
+                        <th style="width:18%">Register Type</th>
+                        <th style="width:12%">Address
+                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip"
+                                title="0-based address. Note: manuals often show 1-based (e.g. 40001 = address 0)."></i>
+                        </th>
+                        <th style="width:18%">Data Type</th>
+                        <th style="width:16%">Byte Order
+                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip"
+                                title="ABCD = Big Endian (most common). DCBA = Little Endian. Check your device manual."></i>
+                        </th>
+                        <th style="width:8%"></th>
+                    </tr>
+                </thead>
+                <tbody id="register-tbody">
+                    <!-- Rows injected by JS -->
+                </tbody>
+            </table>
+        </div>
+        <div id="register-empty" class="text-center text-muted py-4" style="font-size:0.8rem;">
+            <i class="bi bi-table" style="font-size:1.5rem;opacity:0.3;display:block;margin-bottom:.5rem;"></i>
+            No registers configured. Click <strong>Add Register</strong> to start.
+        </div>
+    </div>
+    <div class="card-footer" style="font-size:0.72rem;color:var(--text-muted);">
+        <i class="bi bi-info-circle"></i>
+        FLOAT32 and FLOAT64 occupy 2 and 4 registers respectively. Addresses must not overlap.
+        Multi-register types (UINT32, INT32, FLOAT32, FLOAT64) use consecutive addresses.
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/modbus_config.js') }}"></script>
+{% endblock %}
