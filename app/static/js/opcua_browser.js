@@ -9,6 +9,7 @@ let autoRefreshNodeId = null;
 document.addEventListener("DOMContentLoaded", () => {
     loadTree("ns=0;i=85");
     loadSelectedNodeIds();
+    loadSelectedCount();
     loadNamespaceTable();
 
     document.getElementById("btn-refresh-root").addEventListener("click", () => {
