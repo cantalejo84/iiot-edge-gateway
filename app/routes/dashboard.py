@@ -1,4 +1,5 @@
 import os
+
 from flask import Blueprint, current_app, jsonify, render_template
 
 from app.services import config_store, event_log
