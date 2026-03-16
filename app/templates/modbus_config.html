@@ -24,28 +24,36 @@
             <div class="card-body p-3">
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label">Controller <span class="text-muted" style="font-size:0.75rem;">(host:port)</span></label>
+                        <label class="form-label">Controller
+                            <i class="bi bi-info-circle text-muted hint-icon ms-1" data-bs-toggle="tooltip"
+                               title="IP address and port of the Modbus TCP device. Format: host:port (e.g. 192.168.1.100:502)."></i>
+                        </label>
                         <input type="text" class="form-control form-control-sm" id="modbus-controller"
                             value="{{ config.controller }}" placeholder="192.168.1.100:502">
-                        <div class="form-text">IP address and port of the Modbus TCP device</div>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Slave ID</label>
+                        <label class="form-label">Slave ID
+                            <i class="bi bi-info-circle text-muted hint-icon ms-1" data-bs-toggle="tooltip"
+                               title="Modbus device address (1–247). Use 1 if only one device is connected."></i>
+                        </label>
                         <input type="number" class="form-control form-control-sm" id="modbus-slave-id"
                             value="{{ config.slave_id }}" min="1" max="247">
-                        <div class="form-text">Device address (1–247)</div>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Timeout</label>
+                        <label class="form-label">Timeout
+                            <i class="bi bi-info-circle text-muted hint-icon ms-1" data-bs-toggle="tooltip"
+                               title="Connection timeout. Use Go duration format: 5s, 10s, 1m."></i>
+                        </label>
                         <input type="text" class="form-control form-control-sm" id="modbus-timeout"
                             value="{{ config.timeout }}" placeholder="5s">
-                        <div class="form-text">Connection timeout (e.g. 5s)</div>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Poll Interval</label>
+                        <label class="form-label">Poll Interval
+                            <i class="bi bi-info-circle text-muted hint-icon ms-1" data-bs-toggle="tooltip"
+                               title="How often to read all registers. Use Go duration format: 10s, 30s, 1m."></i>
+                        </label>
                         <input type="text" class="form-control form-control-sm" id="modbus-poll-interval"
                             value="{{ config.poll_interval or '10s' }}" placeholder="10s">
-                        <div class="form-text">How often to read registers (e.g. 10s, 30s, 1m)</div>
                     </div>
                 </div>
                 <div class="mt-2">

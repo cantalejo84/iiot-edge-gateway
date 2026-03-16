@@ -1,4 +1,4 @@
-# IIoT Edge Gateway
+# <img src="app/static/img/logo-white.png" height="42" alt="logo"> IIoT Edge Gateway
 
 **Connect your industrial machines to the cloud**
 

@@ -1,6 +1,6 @@
 // Telegraf agent state control and config deploy
 
-function setAgentUI(running) {
+function setAgentUI(running, crashed = false) {
     const playBtn = document.getElementById("btn-agent-play");
     const stopBtn = document.getElementById("btn-agent-stop");
     const dot = document.getElementById("agent-status-dot");
@@ -9,14 +9,17 @@ function setAgentUI(running) {
     if (running) {
         playBtn.classList.add("btn-state-active");
         stopBtn.classList.remove("btn-state-active");
-        if (dot) { dot.classList.add("agent-dot-running"); dot.classList.remove("agent-dot-stopped"); }
-        if (text) text.textContent = "Running";
     } else {
         playBtn.classList.remove("btn-state-active");
         stopBtn.classList.add("btn-state-active");
-        if (dot) { dot.classList.add("agent-dot-stopped"); dot.classList.remove("agent-dot-running"); }
-        if (text) text.textContent = "Stopped";
     }
+    if (dot) {
+        dot.classList.remove("agent-dot-running", "agent-dot-stopped", "agent-dot-crashed");
+        if (crashed)      dot.classList.add("agent-dot-crashed");
+        else if (running) dot.classList.add("agent-dot-running");
+        else              dot.classList.add("agent-dot-stopped");
+    }
+    if (text) text.textContent = crashed ? "Crashed" : (running ? "Running" : "Stopped");
 }
 
 async function startAgent() {
