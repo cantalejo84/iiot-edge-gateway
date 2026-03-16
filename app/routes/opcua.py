@@ -134,3 +134,30 @@ def save_publishing():
     data = request.get_json()
     config_store.update_section("publishing", data)
     return jsonify({"ok": True})
+
+
+@opcua_bp.route("/api/opcua/namespaces", methods=["GET"])
+def get_opcua_namespaces():
+    from app.services.opcua_client import read_namespace_array
+
+    config = config_store.get_section("opcua")
+    try:
+        result = asyncio.run(read_namespace_array(config))
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@opcua_bp.route("/api/opcua/node-value", methods=["GET"])
+def get_node_value():
+    from app.services.opcua_client import read_node_value
+
+    config = config_store.get_section("opcua")
+    node_id = request.args.get("node_id")
+    if not node_id:
+        return jsonify({"error": "node_id is required"}), 400
+    try:
+        result = asyncio.run(read_node_value(config, node_id))
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

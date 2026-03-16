@@ -653,22 +653,59 @@ body {
 .tree-children.expanded { display: block; }
 
 /* Node details panel */
-.node-details {
-    font-family: var(--font-mono);
+.detail-section-title {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+    margin: 0.5rem 0 0.4rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.detail-attr-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
     font-size: 0.8rem;
 }
 
-.node-details dt {
-    font-size: 0.7rem;
+.detail-label {
+    font-size: 0.68rem;
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    min-width: 6rem;
+    flex-shrink: 0;
 }
 
-.node-details dd {
-    margin-bottom: 0.75rem;
-    color: var(--text-primary);
+/* Bulk toolbar inside tree card */
+#bulk-toolbar {
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    border-top: 1px solid var(--border-color);
 }
+
+/* Tree breadcrumb */
+#tree-breadcrumb .breadcrumb {
+    font-size: 0.75rem;
+}
+
+/* Search input inside card header */
+.card-header .form-control-sm {
+    background: var(--sidebar-bg);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+    font-size: 0.8rem;
+}
+.card-header .form-control-sm:focus {
+    background: var(--sidebar-bg);
+    color: var(--text-primary);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+.card-header .form-control-sm::placeholder { color: var(--text-muted); }
 
 /* Tables */
 .table {

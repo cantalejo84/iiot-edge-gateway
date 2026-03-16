@@ -135,4 +135,112 @@ async def read_node_details(config, node_id_str):
                 details["identifier_type"] = "b"
                 details["identifier"] = str(nodeid.Identifier)
 
+            # --- Extended OPC UA attributes ---
+
+            try:
+                al = await node.get_attribute(ua.AttributeIds.AccessLevel)
+                details["access_level"] = (
+                    int(al.Value.Value) if al.Value.Value is not None else None
+                )
+            except Exception:
+                details["access_level"] = None
+
+            try:
+                desc = await node.get_attribute(ua.AttributeIds.Description)
+                details["description"] = (
+                    desc.Value.Value.Text if desc.Value.Value else None
+                )
+            except Exception:
+                details["description"] = None
+
+            try:
+                vr = await node.get_attribute(ua.AttributeIds.ValueRank)
+                details["value_rank"] = (
+                    int(vr.Value.Value) if vr.Value.Value is not None else None
+                )
+            except Exception:
+                details["value_rank"] = None
+
+            try:
+                msi = await node.get_attribute(ua.AttributeIds.MinimumSamplingInterval)
+                details["min_sampling_interval"] = (
+                    float(msi.Value.Value) if msi.Value.Value is not None else None
+                )
+            except Exception:
+                details["min_sampling_interval"] = None
+
+            try:
+                hist = await node.get_attribute(ua.AttributeIds.Historizing)
+                details["historizing"] = (
+                    bool(hist.Value.Value) if hist.Value.Value is not None else None
+                )
+            except Exception:
+                details["historizing"] = None
+
+            try:
+                dv = await node.get_attribute(ua.AttributeIds.Value)
+                try:
+                    details["status_code"] = dv.StatusCode.name
+                except AttributeError:
+                    details["status_code"] = (
+                        str(dv.StatusCode) if dv.StatusCode else None
+                    )
+                details["source_timestamp"] = (
+                    dv.SourceTimestamp.isoformat() if dv.SourceTimestamp else None
+                )
+                details["server_timestamp"] = (
+                    dv.ServerTimestamp.isoformat() if dv.ServerTimestamp else None
+                )
+            except Exception:
+                details["status_code"] = None
+                details["source_timestamp"] = None
+                details["server_timestamp"] = None
+
+            details["engineering_units"] = None
+            try:
+                eu_children = await node.get_children(refs=ua.ObjectIds.HasProperty)
+                for ch in eu_children:
+                    bn = await ch.read_browse_name()
+                    if bn.Name == "EngineeringUnits":
+                        eu_dv = await ch.get_attribute(ua.AttributeIds.Value)
+                        eu_val = eu_dv.Value.Value
+                        if (
+                            eu_val
+                            and hasattr(eu_val, "DisplayName")
+                            and eu_val.DisplayName.Text
+                        ):
+                            details["engineering_units"] = eu_val.DisplayName.Text
+                        break
+            except Exception:
+                pass
+
         return details
+
+
+async def read_namespace_array(config):
+    client = _build_client(config)
+    async with client:
+        ns_node = client.get_node("ns=0;i=2255")
+        ns_array = await ns_node.read_value()
+        return [{"index": i, "uri": uri} for i, uri in enumerate(ns_array)]
+
+
+async def read_node_value(config, node_id_str):
+    client = _build_client(config)
+    async with client:
+        node = client.get_node(node_id_str)
+        dv = await node.get_attribute(ua.AttributeIds.Value)
+        try:
+            status_code = dv.StatusCode.name
+        except AttributeError:
+            status_code = str(dv.StatusCode) if dv.StatusCode else None
+        return {
+            "value": str(dv.Value.Value) if dv.Value.Value is not None else None,
+            "status_code": status_code,
+            "source_timestamp": dv.SourceTimestamp.isoformat()
+            if dv.SourceTimestamp
+            else None,
+            "server_timestamp": dv.ServerTimestamp.isoformat()
+            if dv.ServerTimestamp
+            else None,
+        }
