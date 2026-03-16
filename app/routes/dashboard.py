@@ -1,5 +1,4 @@
 import os
-from datetime import datetime, timezone
 
 from flask import Blueprint, current_app, jsonify, render_template
 
@@ -50,14 +49,17 @@ def telegraf_status():
 def telegraf_metrics():
     metrics = get_telegraf_metrics()
 
-    if metrics.pop("process_crash_detected", False):
+    process_crashed = metrics.pop("process_crash_detected", False)
+    if process_crashed:
         event_log.log(
             "error",
             "telegraf",
             "Process crash detected — data gap in collection",
             detail="Telegraf restarted inside the container (entrypoint loop). Counters reset.",
         )
-        config_store.record_restart(datetime.now(timezone.utc).isoformat(), "crash")
+        # Do NOT call record_restart — a process crash inside the container is not a
+        # container restart. Docker StartedAt is unchanged. Last Restart shows only
+        # container-level events (deploy / manual / unplanned).
 
     cfg = config_store.load()
     metrics["nodes_configured"] = len(cfg.get("nodes", []))
@@ -75,6 +77,7 @@ def telegraf_metrics():
         metrics["modbus_scan_time_ms"] = 0
         metrics["modbus_errors"] = 0
     metrics["any_input_active"] = opcua_enabled or modbus_enabled
+    metrics["process_crashed"] = process_crashed
     return jsonify(metrics)
 
 

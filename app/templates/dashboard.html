@@ -91,7 +91,7 @@
             {% else %}
             <!-- ── SINGLE MODE: one input node + regular connector ── -->
             <div class="pf-inputs-col">
-                {% if has_opcua or not has_modbus %}
+                {% if has_opcua %}
                 <div class="pf-node pf-node-opcua" id="pf-opcua">
                     <div class="pf-node-icon"><i class="bi bi-cpu"></i></div>
                     <div class="pf-node-label">OPC UA Read</div>
@@ -124,6 +124,13 @@
                             <i class="bi bi-clock"></i> <span id="p-modbus-scan">-- ms</span>
                         </span>
                     </div>
+                </div>
+                {% endif %}
+                {% if not has_opcua and not has_modbus %}
+                <div class="pf-node pf-node-none">
+                    <div class="pf-node-icon"><i class="bi bi-slash-circle"></i></div>
+                    <div class="pf-node-label">No input active</div>
+                    <div class="pf-node-sub">Enable OPC UA or Modbus in Inputs config</div>
                 </div>
                 {% endif %}
             </div>
@@ -178,7 +185,7 @@
         <div class="pipeline-metrics-col">
         <div class="pipeline-metrics-section">
 
-            {% if has_opcua or not has_modbus %}
+            {% if has_opcua %}
             <div class="pm-block">
                 <div class="pm-block-header opcua-label">
                     <i class="bi bi-cpu"></i> OPC UA
@@ -223,6 +230,15 @@
                         <div class="pipeline-stat-label">Errors <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="Cumulative Modbus read errors since Telegraf started."></i></div>
                     </div>
                 </div>
+            </div>
+            {% endif %}
+
+            {% if not has_opcua and not has_modbus %}
+            <div class="pm-block pm-block-none">
+                <div class="pm-block-header">
+                    <i class="bi bi-slash-circle"></i> No input active
+                </div>
+                <p class="pf-node-sub mt-2 mb-0">Enable OPC UA or Modbus in their configuration pages to start collecting data.</p>
             </div>
             {% endif %}
 
@@ -347,7 +363,7 @@
                     <div class="gw-meta-item">
                         <div class="gw-meta-label">
                             Last restart
-                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="When Telegraf last restarted and why: Deploy (config applied), Manual (sidebar button), or ⚠ Unplanned (machine reboot or external event)."></i>
+                            <i class="bi bi-info-circle hint-icon" data-bs-toggle="tooltip" title="When the Telegraf container last restarted and why: Deploy (config applied), Manual (sidebar button), or ⚠ Unplanned (machine reboot or external event). Process crashes are shown in Pipeline Health."></i>
                         </div>
                         <div class="gw-meta-value" id="g-last-restart">--</div>
                     </div>

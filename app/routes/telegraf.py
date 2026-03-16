@@ -5,7 +5,11 @@ from datetime import datetime, timezone
 from flask import Blueprint, current_app, jsonify
 
 from app.services import config_store
-from app.services.system_monitor import reset_crash_detection
+from app.services.system_monitor import (
+    clear_intentional_restart,
+    mark_intentional_restart,
+    reset_crash_detection,
+)
 from app.services.telegraf_config import render_config
 
 telegraf_bp = Blueprint("telegraf", __name__)
@@ -40,24 +44,28 @@ def generate_config():
 
     deploy_time = time.time()
     reset_crash_detection()  # before restart — prevents false crash on counter reset
+    mark_intentional_restart()  # suppress unplanned detection during restart window
     restart_result = _restart_telegraf()
 
     if restart_result.get("ok"):
         event_log.log("info", "telegraf", "Config applied and agent restarted")
-        # Record immediately with approximate time to close the unplanned-detection window
         config_store.record_restart(datetime.now(timezone.utc).isoformat(), "deploy")
         # Wait briefly then check Telegraf logs for config parse errors
         time.sleep(3)
-        # Update with precise Docker timestamp
+        # Update with precise Docker timestamp, then re-enable unplanned detection
         telegraf_start = _get_telegraf_started_at()
         if telegraf_start:
             config_store.record_restart(telegraf_start, "deploy")
+        reset_crash_detection()  # clear stale baseline from old metrics.json before re-enabling
+        clear_intentional_restart()
         error_line = _get_telegraf_config_error(since=deploy_time)
         if error_line:
             event_log.log(
                 "error", "telegraf", "Telegraf config error detected", detail=error_line
             )
     else:
+        reset_crash_detection()
+        clear_intentional_restart()
         event_log.log(
             "error",
             "telegraf",
@@ -185,6 +193,7 @@ def stop_telegraf():
 
         client = docker.from_env()
         containers = client.containers.list(filters={"name": "telegraf"})
+        reset_crash_detection()  # before stop — prevents false crash on counter drop to 0
         for container in containers:
             container.stop(timeout=10)
         event_log.log("warning", "telegraf", "Agent stopped manually")
@@ -204,15 +213,17 @@ def start_telegraf():
         client = docker.from_env()
         containers = client.containers.list(all=True, filters={"name": "telegraf"})
         reset_crash_detection()  # before start — prevents false crash on counter reset
+        mark_intentional_restart()  # suppress unplanned detection during restart window
         for container in containers:
             container.start()
-        # Record immediately with approximate time to close the unplanned-detection window
         config_store.record_restart(datetime.now(timezone.utc).isoformat(), "manual")
         # Brief wait for Docker to update StartedAt, then update with precise timestamp
         time.sleep(2)
         telegraf_start = _get_telegraf_started_at()
         if telegraf_start:
             config_store.record_restart(telegraf_start, "manual")
+        reset_crash_detection()  # clear stale baseline from old metrics.json before re-enabling
+        clear_intentional_restart()  # re-enable unplanned detection
         event_log.log("info", "telegraf", "Agent started manually")
         return jsonify({"ok": True})
     except Exception as e:

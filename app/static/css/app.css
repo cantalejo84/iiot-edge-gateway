@@ -117,7 +117,7 @@
 [data-theme="keepler"] .flow-dot { background: #6b2cf5; }
 
 /* ── K-Gateway brand ─────────────────────────────────────────────── */
-.brand-default { display: flex; align-items: center; gap: 0.5rem; }
+.brand-default { display: block; width: 100%; }
 .brand-keepler { display: none; flex-direction: column; gap: 0; }
 
 [data-theme="keepler"] .brand-default { display: none; }
@@ -186,6 +186,7 @@ body {
 }
 
 .sidebar-brand i { font-size: 1.3rem; }
+.brand-logo { width: 100%; height: auto; display: block; }
 
 .sidebar-powered {
     font-family: var(--font-mono);
@@ -397,6 +398,11 @@ body {
 }
 
 .agent-dot-stopped { background: var(--danger); }
+
+.agent-dot-crashed {
+    background: var(--danger);
+    animation: dotPulseCrash 1s ease-in-out infinite;
+}
 
 /* STATE section row */
 .state-row {
@@ -1021,6 +1027,22 @@ body {
 .pipeline-dual .pf-node-modbus .pf-node-value { font-size: 1.5rem; }
 
 
+/* No input active placeholder node */
+.pf-node-none {
+    background: var(--sidebar-bg);
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+    padding: 0.75rem 1.25rem;
+    min-width: 160px;
+    opacity: 0.6;
+    text-align: center;
+}
+
+.pm-block-none .pm-block-header {
+    color: var(--text-muted);
+    border-bottom-color: var(--border-color);
+}
+
 /* Modbus node */
 .pf-node-modbus {
     background: var(--sidebar-bg);
@@ -1275,6 +1297,18 @@ body {
 .pipeline-status-badge.badge-idle .pipeline-status-dot { background: var(--text-muted); }
 .pipeline-idle .flow-dot { display: none; }
 .pipeline-idle .pf-connector-line { opacity: 0.3; }
+
+@keyframes dotPulseCrash {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.6); }
+    50%       { box-shadow: 0 0 0 5px rgba(239,68,68,0); }
+}
+.pipeline-status-badge.badge-crashed { color: var(--danger); }
+.pipeline-status-badge.badge-crashed .pipeline-status-dot {
+    background: var(--danger);
+    animation: dotPulseCrash 1s ease-in-out infinite;
+}
+.pipeline-crashed .flow-dot { display: none; }
+.pipeline-crashed .pf-connector-line { background: var(--danger); opacity: 0.5; }
 
 /* Pipeline Health — side-by-side layout */
 .pipeline-health-body {

@@ -4,6 +4,8 @@ let lastOpcuaCount = null;
 let telegrafRunning = null;
 let nodesConfigured = 0;
 let anyInputActive = true;
+let pipelineCrashed = false;
+let crashedTimer = null;
 
 document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
@@ -42,6 +44,10 @@ async function refreshTelegrafRunning() {
 }
 
 function updatePipelineStatus() {
+    if (pipelineCrashed) {
+        setPipelineState("crashed");
+        return;
+    }
     if (telegrafRunning === true && anyInputActive) {
         setPipelineState("running");
     } else if (telegrafRunning === true && !anyInputActive) {
@@ -93,6 +99,18 @@ async function refreshTelegrafMetrics() {
         if (d.any_input_active !== undefined) {
             anyInputActive = d.any_input_active;
             updatePipelineStatus();
+        }
+        if (d.process_crashed) {
+            pipelineCrashed = true;
+            setAgentUI(true, true);
+            updatePipelineStatus();
+            if (crashedTimer) clearTimeout(crashedTimer);
+            crashedTimer = setTimeout(() => {
+                pipelineCrashed = false;
+                crashedTimer = null;
+                updatePipelineStatus();
+                setAgentUI(telegrafRunning === true);
+            }, 18000);
         }
 
         // OPC UA input node
@@ -211,9 +229,9 @@ function setPipelineState(state) {
     const badge = document.getElementById("pipeline-status-badge");
     if (!flow) return;
 
-    flow.classList.remove("pipeline-active", "pipeline-stopped", "pipeline-idle");
+    flow.classList.remove("pipeline-active", "pipeline-stopped", "pipeline-idle", "pipeline-crashed");
     if (dot) dot.classList.remove("dot-running", "dot-idle");
-    if (badge) badge.classList.remove("badge-running", "badge-stopped", "badge-idle");
+    if (badge) badge.classList.remove("badge-running", "badge-stopped", "badge-idle", "badge-crashed");
 
     if (state === "running") {
         flow.classList.add("pipeline-active");
@@ -225,6 +243,10 @@ function setPipelineState(state) {
         if (dot) dot.classList.add("dot-idle");
         if (label) label.textContent = "Idle";
         if (badge) badge.classList.add("badge-idle");
+    } else if (state === "crashed") {
+        flow.classList.add("pipeline-crashed");
+        if (label) label.textContent = "Crashed";
+        if (badge) badge.classList.add("badge-crashed");
     } else {
         flow.classList.add("pipeline-stopped");
         if (label) label.textContent = "Stopped";

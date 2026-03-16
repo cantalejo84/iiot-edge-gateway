@@ -36,12 +36,36 @@ def get_telegraf_status():
 # Cleared by reset_crash_detection() after any intentional restart (deploy / manual start).
 _prev_gathered: dict = {}
 
+# Set during intentional restarts to suppress false "unplanned" detection in
+# get_gateway_info() until the precise Docker started_at has been recorded.
+_intentional_restart_pending: bool = False
+
+# Grace period (epoch timestamp) after clear_intentional_restart(). Crash detection and
+# baseline updates are suppressed until this time, preventing stale metrics.json data
+# (which persists until Telegraf overwrites it) from creating a false-positive crash.
+_post_restart_grace_until: float = 0
+_POST_RESTART_GRACE_SECS = 15
+
 
 def reset_crash_detection():
     """Clear the previous-gathered baseline. Call after any intentional Telegraf restart
     so the next metrics poll does not misread the counter reset as a crash."""
     global _prev_gathered
     _prev_gathered = {}
+
+
+def mark_intentional_restart():
+    """Suppress unplanned-restart detection. Call before any intentional restart."""
+    global _intentional_restart_pending
+    _intentional_restart_pending = True
+
+
+def clear_intentional_restart():
+    """Re-enable unplanned-restart detection. Call after recording precise started_at.
+    Also starts a grace period to absorb stale metrics.json data from before the restart."""
+    global _intentional_restart_pending, _post_restart_grace_until
+    _intentional_restart_pending = False
+    _post_restart_grace_until = time.time() + _POST_RESTART_GRACE_SECS
 
 
 def get_telegraf_metrics():
@@ -147,14 +171,26 @@ def get_telegraf_metrics():
 
         # Crash detection: a counter decreasing from a non-trivial value means
         # the Telegraf process restarted inside the container (entrypoint loop).
+        # Suppressed during intentional restarts AND during the post-restart grace period
+        # to avoid false positives from stale metrics.json data.
         global _prev_gathered
+        in_grace = time.time() < _post_restart_grace_until
         crash_detected = False
         for key in ("opcua_gathered", "modbus_gathered"):
             current = metrics[key]
             prev = _prev_gathered.get(key)
-            if prev is not None and prev > 5 and current < prev:
+            if (
+                not in_grace
+                and not _intentional_restart_pending
+                and prev is not None
+                and prev > 5
+                and current < prev
+            ):
                 crash_detected = True
-            _prev_gathered[key] = current
+            # Don't update baseline during restart window or grace period — stale data
+            # would create a false-positive crash on the next poll cycle.
+            if not in_grace and not _intentional_restart_pending:
+                _prev_gathered[key] = current
         metrics["process_crash_detected"] = crash_detected
 
         return metrics
@@ -283,8 +319,11 @@ def get_gateway_info():
     telegraf_started_at, telegraf_uptime_seconds = _get_telegraf_container_info()
 
     last_restart = meta.get("last_restart", {})
-    # Auto-detect unplanned restart: Telegraf started at a different time than recorded
-    if _compute_unexpected_restart(telegraf_started_at, last_restart.get("started_at")):
+    # Auto-detect unplanned restart: Telegraf started at a different time than recorded.
+    # Skip while an intentional restart is in progress (precise timestamp not yet saved).
+    if not _intentional_restart_pending and _compute_unexpected_restart(
+        telegraf_started_at, last_restart.get("started_at")
+    ):
         config_store.record_restart(telegraf_started_at, "unplanned")
         last_restart = {"started_at": telegraf_started_at, "reason": "unplanned"}
 
