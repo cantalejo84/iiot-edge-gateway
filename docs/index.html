@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IIoT Edge Gateway — Connect industrial machines to the cloud</title>
+  <meta name="description" content="Open-source industrial IoT edge gateway. Reads OPC UA and Modbus data, publishes to MQTT/AWS IoT Core. Configurable via web UI. Runs in Docker.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    :root {
+      --accent: #6b2cf5;
+      --accent-hover: #5a20e0;
+      --accent-glow: rgba(107, 44, 245, 0.25);
+      --bg-main: #0d1117;
+      --bg-card: #161b22;
+      --bg-card-hover: #1c2330;
+      --border: #30363d;
+      --text-primary: #e6edf3;
+      --text-muted: #8b949e;
+      --text-dim: #6e7681;
+      --green: #3fb950;
+      --font-ui: 'Montserrat', sans-serif;
+      --font-mono: 'JetBrains Mono', 'Consolas', monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      background: var(--bg-main);
+      color: var(--text-primary);
+      font-family: var(--font-ui);
+      margin: 0;
+      line-height: 1.6;
+    }
+
+    /* ── Navbar ── */
+    .site-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(13, 17, 23, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 0;
+    }
+
+    .site-nav .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 960px;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      text-decoration: none;
+      color: var(--text-primary);
+      font-weight: 700;
+      font-size: 0.95rem;
+      letter-spacing: -0.01em;
+    }
+
+    .nav-brand .brand-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(0.85); }
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .nav-link-gh {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.85rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      text-decoration: none;
+      color: var(--text-primary);
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .nav-link-gh:hover {
+      border-color: var(--accent);
+      background: var(--accent-glow);
+      color: var(--text-primary);
+    }
+
+    /* ── Hero ── */
+    .hero {
+      padding: 5rem 0 4rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 400px;
+      background: radial-gradient(ellipse, var(--accent-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.3rem 0.75rem;
+      background: var(--accent-glow);
+      border: 1px solid rgba(107, 44, 245, 0.4);
+      border-radius: 100px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #a78bf6;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 1rem;
+      line-height: 1.15;
+    }
+
+    .hero h1 span {
+      background: linear-gradient(135deg, #a78bf6 0%, #6b2cf5 50%, #4f46e5 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      max-width: 540px;
+      margin: 0 auto 2rem;
+      font-weight: 400;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-accent {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.65rem 1.4rem;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-family: var(--font-ui);
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+    }
+
+    .btn-accent:hover {
+      background: var(--accent-hover);
+      box-shadow: 0 0 20px var(--accent-glow);
+      transform: translateY(-1px);
+      color: #fff;
+    }
+
+    .btn-outline {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.65rem 1.4rem;
+      background: transparent;
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: var(--font-ui);
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    }
+
+    .btn-outline:hover {
+      border-color: var(--accent);
+      background: var(--accent-glow);
+      color: var(--text-primary);
+      transform: translateY(-1px);
+    }
+
+    /* ── Section common ── */
+    section {
+      padding: 4rem 0;
+    }
+
+    .section-title {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+
+    .section-sub {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .section-sep {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0;
+    }
+
+    /* ── Architecture diagram ── */
+    .arch-section {
+      background: var(--bg-card);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .arch-diagram {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 2rem 1.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      line-height: 1.7;
+      color: var(--text-primary);
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .arch-diagram .c-input   { color: #d29922; }
+    .arch-diagram .c-gw     { color: #a78bf6; }
+    .arch-diagram .c-output  { color: #3fb950; }
+    .arch-diagram .c-arrow   { color: var(--text-dim); }
+    .arch-diagram .c-label   { color: var(--text-muted); }
+
+    /* ── Features ── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+      gap: 1rem;
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem 1.4rem;
+      transition: border-color 0.15s, background 0.15s, transform 0.15s;
+    }
+
+    .feature-card:hover {
+      border-color: rgba(107, 44, 245, 0.4);
+      background: var(--bg-card-hover);
+      transform: translateY(-2px);
+    }
+
+    .feature-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      margin-bottom: 0.85rem;
+    }
+
+    .feature-card h3 {
+      font-size: 0.9rem;
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+      letter-spacing: -0.01em;
+    }
+
+    .feature-card p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    /* ── Screenshot ── */
+    .screenshot-section { text-align: center; }
+
+    .screenshot-wrapper {
+      position: relative;
+      display: inline-block;
+      max-width: 100%;
+    }
+
+    .screenshot-wrapper::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: 11px;
+      padding: 1px;
+      background: linear-gradient(135deg, rgba(107,44,245,0.5), var(--border));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+
+    .screenshot-img {
+      display: block;
+      max-width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+
+    .screenshot-caption {
+      margin-top: 0.75rem;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+    }
+
+    /* ── Quick Start ── */
+    .quickstart-section { background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+
+    .steps-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .step-item {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+
+    .step-num {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--accent-glow);
+      border: 1px solid rgba(107, 44, 245, 0.4);
+      color: #a78bf6;
+      font-size: 0.78rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 0.1rem;
+    }
+
+    .step-content h4 {
+      font-size: 0.9rem;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+    }
+
+    .step-content p {
+      font-size: 0.83rem;
+      color: var(--text-muted);
+      margin-bottom: 0.6rem;
+    }
+
+    .code-block {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--text-primary);
+      overflow-x: auto;
+    }
+
+    .code-block .code-comment { color: var(--text-dim); }
+    .code-block .code-cmd     { color: #79c0ff; }
+    .code-block .code-arg     { color: #a5d6ff; }
+    .code-block .code-url     { color: var(--green); }
+
+    /* ── Footer ── */
+    .site-footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem 0;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.82rem;
+    }
+
+    .site-footer a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    .site-footer a:hover { color: var(--accent); }
+
+    .footer-badges {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+
+    /* ── Utility ── */
+    .container { max-width: 960px; margin: 0 auto; padding: 0 1.5rem; }
+    .text-center { text-align: center; }
+    .mb-0 { margin-bottom: 0; }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="site-nav">
+    <div class="container">
+      <a href="#" class="nav-brand">
+        <div class="brand-dot"></div>
+        IIoT Edge Gateway
+      </a>
+      <div class="nav-links">
+        <a href="https://github.com/cantalejo84/iiot-edge-gateway" class="nav-link-gh" target="_blank" rel="noopener">
+          <i class="bi bi-github"></i> GitHub
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-badge">
+        <i class="bi bi-activity"></i>
+        Open Source · MIT License
+      </div>
+      <h1>Connect <span>industrial machines</span><br>to the cloud</h1>
+      <p>An open-source edge gateway that reads OPC UA and Modbus data and publishes it to MQTT and AWS IoT Core — configured entirely through a web UI.</p>
+      <div class="hero-actions">
+        <a href="https://github.com/cantalejo84/iiot-edge-gateway" class="btn-accent" target="_blank" rel="noopener">
+          <i class="bi bi-github"></i> View on GitHub
+        </a>
+        <a href="#quickstart" class="btn-outline">
+          Quick Start <i class="bi bi-arrow-down"></i>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Architecture -->
+  <section class="arch-section">
+    <div class="container">
+      <div class="text-center" style="margin-bottom: 2rem;">
+        <h2 class="section-title">How it works</h2>
+        <p class="section-sub mb-0">The gateway bridges industrial field devices with cloud platforms using open standards.</p>
+      </div>
+      <div class="arch-diagram" role="img" aria-label="Architecture diagram">
+<span class="c-label">  Industrial Field                Edge Server               Cloud / Broker</span>
+<span class="c-label">  ─────────────────               ───────────               ──────────────</span>
+
+<span class="c-input">  ┌──────────────┐</span>               <span class="c-gw">┌──────────────┐</span>               <span class="c-output">┌────────────────┐</span>
+<span class="c-input">  │  PLC / OPC UA│</span><span class="c-arrow"> ──── OPC UA ──▶</span><span class="c-gw">│              │</span><span class="c-arrow"> ── MQTT/TLS ──▶</span><span class="c-output">│  AWS IoT Core  │</span>
+<span class="c-input">  └──────────────┘</span>               <span class="c-gw">│  Edge Gateway│</span>               <span class="c-output">└────────────────┘</span>
+                                <span class="c-gw">│              │</span>
+<span class="c-input">  ┌──────────────┐</span>               <span class="c-gw">│  Flask Web UI│</span>               <span class="c-output">┌────────────────┐</span>
+<span class="c-input">  │ Modbus Device│</span><span class="c-arrow"> ─── Modbus ───▶</span><span class="c-gw">│  + Telegraf  │</span><span class="c-arrow"> ─── MQTT ─────▶</span><span class="c-output">│  Mosquitto /   │</span>
+<span class="c-input">  └──────────────┘</span>               <span class="c-gw">└──────────────┘</span>               <span class="c-output">│  Any Broker    │</span>
+                                                               <span class="c-output">└────────────────┘</span>
+<span class="c-label">              Browser ──▶ http://localhost:8050  (config UI)</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section>
+    <div class="container">
+      <div class="text-center">
+        <h2 class="section-title">Features</h2>
+        <p class="section-sub">Everything you need to connect factory-floor equipment to the cloud.</p>
+      </div>
+      <div class="features-grid">
+
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(184,134,11,0.15); color: #d29922;">
+            <i class="bi bi-cpu"></i>
+          </div>
+          <h3>OPC UA Input</h3>
+          <p>Browse OPC UA server nodes, select tags, and configure polling or subscription acquisition modes.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(184,134,11,0.15); color: #d29922;">
+            <i class="bi bi-hdd-network"></i>
+          </div>
+          <h3>Modbus TCP Input</h3>
+          <p>Read holding registers, coils, and discrete inputs from any Modbus TCP device on the network.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(63,185,80,0.15); color: #3fb950;">
+            <i class="bi bi-cloud-upload"></i>
+          </div>
+          <h3>MQTT Output</h3>
+          <p>Publish to AWS IoT Core, Azure IoT Hub, or any MQTT broker. Supports TLS with certificate upload.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(107,44,245,0.15); color: #a78bf6;">
+            <i class="bi bi-sliders"></i>
+          </div>
+          <h3>Web UI Configuration</h3>
+          <p>Auto-save configuration for all inputs and outputs. No command-line editing of config files required.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(107,44,245,0.15); color: #a78bf6;">
+            <i class="bi bi-diagram-3"></i>
+          </div>
+          <h3>Telegraf-powered</h3>
+          <p>Uses InfluxData Telegraf as the data engine. The UI generates and deploys <code style="font-family:var(--font-mono);font-size:0.78rem;color:#a78bf6;">telegraf.conf</code> automatically.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(8,145,178,0.15); color: #38bdf8;">
+            <i class="bi bi-activity"></i>
+          </div>
+          <h3>Live Dashboard</h3>
+          <p>Real-time pipeline health metrics — OPC UA read counts, MQTT publish rates, CPU, memory, and disk.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(63,185,80,0.15); color: #3fb950;">
+            <i class="bi bi-envelope-check"></i>
+          </div>
+          <h3>MQTT Live Tail</h3>
+          <p>View live MQTT messages flowing to your broker directly from the UI — no external tools needed.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(8,145,178,0.15); color: #38bdf8;">
+            <i class="bi bi-box"></i>
+          </div>
+          <h3>Docker Native</h3>
+          <p>Designed to run with <code style="font-family:var(--font-mono);font-size:0.78rem;color:#38bdf8;">docker compose up</code>. Includes demo OPC UA server and MQTT broker for local testing.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(200,43,74,0.15); color: #f47495;">
+            <i class="bi bi-download"></i>
+          </div>
+          <h3>Config Export / Import</h3>
+          <p>Export and import the full gateway configuration as JSON for backup, migration, or replication.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Screenshot -->
+  <section class="screenshot-section" style="background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+    <div class="container">
+      <div class="text-center" style="margin-bottom: 2rem;">
+        <h2 class="section-title">Pipeline Dashboard</h2>
+        <p class="section-sub mb-0">Monitor data flow from industrial devices to the cloud in real time.</p>
+      </div>
+      <div class="screenshot-wrapper">
+        <img src="screenshots/dashboard.png" alt="IIoT Edge Gateway dashboard showing pipeline health metrics" class="screenshot-img">
+      </div>
+      <p class="screenshot-caption">Live pipeline metrics — OPC UA reads, MQTT publish rate, system health</p>
+    </div>
+  </section>
+
+  <!-- Quick Start -->
+  <section class="quickstart-section" id="quickstart">
+    <div class="container">
+      <div class="text-center">
+        <h2 class="section-title">Quick Start</h2>
+        <p class="section-sub">Up and running in under two minutes.</p>
+      </div>
+      <div style="max-width: 620px; margin: 0 auto;">
+        <ol class="steps-list">
+
+          <li class="step-item">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <h4>Clone the repository</h4>
+              <div class="code-block">
+<span class="code-cmd">git</span> <span class="code-arg">clone</span> https://github.com/cantalejo84/iiot-edge-gateway.git
+<span class="code-cmd">cd</span> iiot-edge-gateway
+              </div>
+            </div>
+          </li>
+
+          <li class="step-item">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <h4>Start the full stack</h4>
+              <p>Includes the gateway, Telegraf, a demo OPC UA server, and a Mosquitto broker.</p>
+              <div class="code-block">
+<span class="code-cmd">docker compose up</span> <span class="code-arg">--build -d</span>
+              </div>
+            </div>
+          </li>
+
+          <li class="step-item">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <h4>Open the web UI</h4>
+              <p>Configure your OPC UA / Modbus inputs and MQTT output, then click Deploy.</p>
+              <div class="code-block">
+<span class="code-url">http://localhost:8050</span>
+              </div>
+            </div>
+          </li>
+
+        </ol>
+
+        <div style="margin-top: 2rem; text-align: center;">
+          <a href="https://github.com/cantalejo84/iiot-edge-gateway#readme" class="btn-accent" target="_blank" rel="noopener">
+            <i class="bi bi-book"></i> Read the full docs
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-badges">
+        <a href="https://github.com/cantalejo84/iiot-edge-gateway/blob/main/LICENSE" target="_blank" rel="noopener">
+          <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="MIT License">
+        </a>
+        <a href="https://github.com/cantalejo84/iiot-edge-gateway/actions" target="_blank" rel="noopener">
+          <img src="https://img.shields.io/github/actions/workflow/status/cantalejo84/iiot-edge-gateway/tests.yml?branch=main&style=flat-square&label=tests" alt="Tests">
+        </a>
+        <img src="https://img.shields.io/badge/python-3.11-blue?style=flat-square" alt="Python 3.11">
+        <img src="https://img.shields.io/badge/telegraf-1.33-orange?style=flat-square" alt="Telegraf 1.33">
+      </div>
+      <p>
+        Released under the <a href="https://github.com/cantalejo84/iiot-edge-gateway/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>
+        &nbsp;·&nbsp;
+        <a href="https://github.com/cantalejo84/iiot-edge-gateway" target="_blank" rel="noopener">
+          <i class="bi bi-github"></i> cantalejo84/iiot-edge-gateway
+        </a>
+      </p>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
