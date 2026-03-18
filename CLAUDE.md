@@ -238,7 +238,10 @@ The UI has "Use Demo Server" / "Demo" quick-fill buttons.
 - `.github/workflows/code-quality.yml` -- ruff lint/format + `workflow_dispatch`
 - `.github/workflows/security.yml` -- bandit + pip-audit + trivy + `workflow_dispatch`
 - `.github/workflows/codeql.yml` -- CodeQL Python + `workflow_dispatch`
+- `.github/workflows/pages.yml` -- deploys `docs/` to GitHub Pages on push to main + `workflow_dispatch`
 - All have `workflow_dispatch` for manual runs from GitHub Actions UI
+
+**GitHub Pages:** Static landing page in `docs/index.html`. Screenshots in `docs/screenshots/`. Source configured as "GitHub Actions" in repo Settings → Pages. URL: `https://cantalejo84.github.io/iiot-edge-gateway/`.
 
 **Trivy setup:** `continue-on-error: true` on the scan step so install/network failures don't break the job. Fallback step creates a minimal valid SARIF if the file is missing — must include `runs[0].tool.driver` (GitHub Code Scanning API rejects `"runs":[]`). Uses `github/codeql-action/upload-sarif@v4` (v3 deprecated Dec 2026).
 
