@@ -60,24 +60,12 @@
       align-items: center;
       gap: 0.6rem;
       text-decoration: none;
-      color: var(--text-primary);
-      font-weight: 700;
-      font-size: 0.95rem;
-      letter-spacing: -0.01em;
     }
 
-    .nav-brand .brand-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 8px var(--accent);
-      animation: pulse-dot 2s ease-in-out infinite;
-    }
-
-    @keyframes pulse-dot {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.6; transform: scale(0.85); }
+    .nav-brand img {
+      height: 44px;
+      width: auto;
+      display: block;
     }
 
     .nav-links {
@@ -251,24 +239,182 @@
       border-bottom: 1px solid var(--border);
     }
 
-    .arch-diagram {
+    /* ── Architecture diagram ── */
+    .diag-outer {
       background: #0d1117;
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 2rem 1.5rem;
-      font-family: var(--font-mono);
-      font-size: 0.82rem;
-      line-height: 1.7;
-      color: var(--text-primary);
+      border-radius: 12px;
+      padding: 1.75rem 1.5rem 1.5rem;
       overflow-x: auto;
-      white-space: pre;
     }
 
-    .arch-diagram .c-input   { color: #d29922; }
-    .arch-diagram .c-gw     { color: #a78bf6; }
-    .arch-diagram .c-output  { color: #3fb950; }
-    .arch-diagram .c-arrow   { color: var(--text-dim); }
-    .arch-diagram .c-label   { color: var(--text-muted); }
+    /* header row: 3 sections */
+    .diag-headers {
+      display: flex;
+      align-items: flex-end;
+      margin-bottom: 1.25rem;
+    }
+
+    .diag-h {
+      font-size: 0.68rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .diag-h.left  { flex: 1; color: #d29922; }
+    .diag-h.mid   { width: 172px; flex-shrink: 0; text-align: center; color: var(--text-primary); font-size: 0.95rem; font-weight: 700; text-transform: none; letter-spacing: -0.01em; }
+    .diag-h.right { flex: 1; color: #3fb950; text-align: right; }
+
+    /* main body */
+    .diag-body {
+      display: flex;
+      align-items: stretch;
+    }
+
+    /* left and right node columns */
+    .diag-nodes {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      flex-shrink: 0;
+      gap: 0.5rem;
+    }
+
+    .diag-nodes.right {
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    /* connector columns (arrows + labels) */
+    .diag-conns {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      align-self: stretch;
+      min-width: 70px;
+    }
+
+    .diag-conns.right {
+      justify-content: center;
+      gap: 0.85rem;
+    }
+
+    .diag-conn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .diag-conn-label {
+      font-size: 0.62rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+
+    .diag-conn-line {
+      width: 100%;
+      height: 1px;
+      background: var(--border);
+      position: relative;
+    }
+
+    .diag-conns.left .diag-conn-line {
+      background: linear-gradient(90deg, rgba(184,134,11,0.5), rgba(107,44,245,0.5));
+    }
+
+    .diag-conns.left .diag-conn-line::after {
+      content: '▶';
+      position: absolute;
+      right: -5px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.5rem;
+      color: rgba(107,44,245,0.7);
+      line-height: 1;
+    }
+
+    .diag-conns.right .diag-conn-line {
+      background: linear-gradient(90deg, rgba(107,44,245,0.5), rgba(63,185,80,0.5));
+    }
+
+    .diag-conns.right .diag-conn-line::after {
+      content: '▶';
+      position: absolute;
+      right: -5px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.5rem;
+      color: rgba(63,185,80,0.7);
+      line-height: 1;
+    }
+
+    /* gateway center */
+    .diag-gw {
+      flex-shrink: 0;
+      width: 172px;
+      align-self: stretch;
+      border-radius: 12px;
+      border: 1px solid rgba(107,44,245,0.45);
+      background: rgba(107,44,245,0.08);
+      box-shadow: 0 0 24px rgba(107,44,245,0.12) inset;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.3rem;
+      padding: 1.25rem 0.75rem;
+    }
+
+    .diag-gw img {
+      width: 48px;
+      height: auto;
+      margin-bottom: 0.2rem;
+    }
+
+    .diag-gw-name {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #c4b5fd;
+      letter-spacing: -0.01em;
+    }
+
+    .diag-gw-sub {
+      font-size: 0.62rem;
+      color: #a78bf6;
+      opacity: 0.75;
+    }
+
+    /* nodes */
+    .diag-node {
+      width: 142px;
+      height: 46px;
+      border-radius: 8px;
+      border: 1px solid;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      white-space: nowrap;
+    }
+
+    .diag-node.input {
+      background: rgba(184,134,11,0.1);
+      border-color: rgba(184,134,11,0.4);
+      color: #d29922;
+    }
+
+    .diag-node.output {
+      background: rgba(63,185,80,0.08);
+      border-color: rgba(63,185,80,0.35);
+      color: #3fb950;
+    }
 
     /* ── Features ── */
     .features-grid {
@@ -319,25 +465,6 @@
     /* ── Screenshot ── */
     .screenshot-section { text-align: center; }
 
-    .screenshot-wrapper {
-      position: relative;
-      display: inline-block;
-      max-width: 100%;
-    }
-
-    .screenshot-wrapper::before {
-      content: '';
-      position: absolute;
-      inset: -1px;
-      border-radius: 11px;
-      padding: 1px;
-      background: linear-gradient(135deg, rgba(107,44,245,0.5), var(--border));
-      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite: xor;
-      mask-composite: exclude;
-      pointer-events: none;
-    }
-
     .screenshot-img {
       display: block;
       max-width: 100%;
@@ -346,11 +473,13 @@
       box-shadow: 0 20px 60px rgba(0,0,0,0.5);
     }
 
-    .screenshot-caption {
-      margin-top: 0.75rem;
-      font-size: 0.82rem;
-      color: var(--text-dim);
-    }
+    /* carousel overrides */
+    .carousel-inner { border-radius: 10px; border: 1px solid var(--border); box-shadow: 0 20px 60px rgba(0,0,0,0.5); overflow: hidden; }
+    .carousel-control-prev, .carousel-control-next { width: 2.5rem; }
+    .carousel-control-prev-icon, .carousel-control-next-icon { filter: none; background-color: rgba(107,44,245,0.7); border-radius: 50%; padding: 0.9rem; background-size: 55%; }
+    .carousel-indicators [data-bs-target] { background-color: var(--border); width: 8px; height: 8px; border-radius: 50%; border: none; }
+    .carousel-indicators .active { background-color: var(--accent); }
+    .carousel-caption-custom { margin-top: 0.75rem; font-size: 0.82rem; color: var(--text-dim); min-height: 1.2em; }
 
     /* ── Quick Start ── */
     .quickstart-section { background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
@@ -451,8 +580,7 @@
   <nav class="site-nav">
     <div class="container">
       <a href="#" class="nav-brand">
-        <div class="brand-dot"></div>
-        IIoT Edge Gateway
+        <img src="logo.png" alt="IIoT Edge Gateway">
       </a>
       <div class="nav-links">
         <a href="https://github.com/cantalejo84/iiot-edge-gateway" class="nav-link-gh" target="_blank" rel="noopener">
@@ -470,7 +598,7 @@
         Open Source · MIT License
       </div>
       <h1>Connect <span>industrial machines</span><br>to the cloud</h1>
-      <p>An open-source edge gateway that reads OPC UA and Modbus data and publishes it to MQTT and AWS IoT Core — configured entirely through a web UI.</p>
+      <p>An open-source edge gateway that reads OPC UA and Modbus data and publishes it to MQTT Brokers — configured entirely through a web UI.</p>
       <div class="hero-actions">
         <a href="https://github.com/cantalejo84/iiot-edge-gateway" class="btn-accent" target="_blank" rel="noopener">
           <i class="bi bi-github"></i> View on GitHub
@@ -489,19 +617,8 @@
         <h2 class="section-title">How it works</h2>
         <p class="section-sub mb-0">The gateway bridges industrial field devices with cloud platforms using open standards.</p>
       </div>
-      <div class="arch-diagram" role="img" aria-label="Architecture diagram">
-<span class="c-label">  Industrial Field                Edge Server               Cloud / Broker</span>
-<span class="c-label">  ─────────────────               ───────────               ──────────────</span>
-
-<span class="c-input">  ┌──────────────┐</span>               <span class="c-gw">┌──────────────┐</span>               <span class="c-output">┌────────────────┐</span>
-<span class="c-input">  │  PLC / OPC UA│</span><span class="c-arrow"> ──── OPC UA ──▶</span><span class="c-gw">│              │</span><span class="c-arrow"> ── MQTT/TLS ──▶</span><span class="c-output">│  AWS IoT Core  │</span>
-<span class="c-input">  └──────────────┘</span>               <span class="c-gw">│  Edge Gateway│</span>               <span class="c-output">└────────────────┘</span>
-                                <span class="c-gw">│              │</span>
-<span class="c-input">  ┌──────────────┐</span>               <span class="c-gw">│  Flask Web UI│</span>               <span class="c-output">┌────────────────┐</span>
-<span class="c-input">  │ Modbus Device│</span><span class="c-arrow"> ─── Modbus ───▶</span><span class="c-gw">│  + Telegraf  │</span><span class="c-arrow"> ─── MQTT ─────▶</span><span class="c-output">│  Mosquitto /   │</span>
-<span class="c-input">  └──────────────┘</span>               <span class="c-gw">└──────────────┘</span>               <span class="c-output">│  Any Broker    │</span>
-                                                               <span class="c-output">└────────────────┘</span>
-<span class="c-label">              Browser ──▶ http://localhost:8050  (config UI)</span>
+      <div style="text-align:center;">
+        <img src="screenshots/diagram.png" alt="How it works — architecture diagram" style="max-width:100%;border-radius:10px;">
       </div>
     </div>
   </section>
@@ -519,24 +636,16 @@
           <div class="feature-icon" style="background: rgba(184,134,11,0.15); color: #d29922;">
             <i class="bi bi-cpu"></i>
           </div>
-          <h3>OPC UA Input</h3>
-          <p>Browse OPC UA server nodes, select tags, and configure polling or subscription acquisition modes.</p>
+          <h3>OPC UA &amp; Modbus Inputs</h3>
+          <p>Connect to any OPC UA server or Modbus TCP device. Configure polling, subscriptions, and register mapping from the UI.</p>
         </div>
 
         <div class="feature-card">
           <div class="feature-icon" style="background: rgba(184,134,11,0.15); color: #d29922;">
-            <i class="bi bi-hdd-network"></i>
+            <i class="bi bi-diagram-3"></i>
           </div>
-          <h3>Modbus TCP Input</h3>
-          <p>Read holding registers, coils, and discrete inputs from any Modbus TCP device on the network.</p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon" style="background: rgba(63,185,80,0.15); color: #3fb950;">
-            <i class="bi bi-cloud-upload"></i>
-          </div>
-          <h3>MQTT Output</h3>
-          <p>Publish to AWS IoT Core, Azure IoT Hub, or any MQTT broker. Supports TLS with certificate upload.</p>
+          <h3>OPC UA Node Browser</h3>
+          <p>Visually navigate the OPC UA address space, inspect node attributes, and add tags to your acquisition list with bulk-select support.</p>
         </div>
 
         <div class="feature-card">
@@ -549,7 +658,7 @@
 
         <div class="feature-card">
           <div class="feature-icon" style="background: rgba(107,44,245,0.15); color: #a78bf6;">
-            <i class="bi bi-diagram-3"></i>
+            <i class="bi bi-lightning-charge-fill"></i>
           </div>
           <h3>Telegraf-powered</h3>
           <p>Uses InfluxData Telegraf as the data engine. The UI generates and deploys <code style="font-family:var(--font-mono);font-size:0.78rem;color:#a78bf6;">telegraf.conf</code> automatically.</p>
@@ -564,14 +673,6 @@
         </div>
 
         <div class="feature-card">
-          <div class="feature-icon" style="background: rgba(63,185,80,0.15); color: #3fb950;">
-            <i class="bi bi-envelope-check"></i>
-          </div>
-          <h3>MQTT Live Tail</h3>
-          <p>View live MQTT messages flowing to your broker directly from the UI — no external tools needed.</p>
-        </div>
-
-        <div class="feature-card">
           <div class="feature-icon" style="background: rgba(8,145,178,0.15); color: #38bdf8;">
             <i class="bi bi-box"></i>
           </div>
@@ -579,29 +680,50 @@
           <p>Designed to run with <code style="font-family:var(--font-mono);font-size:0.78rem;color:#38bdf8;">docker compose up</code>. Includes demo OPC UA server and MQTT broker for local testing.</p>
         </div>
 
-        <div class="feature-card">
-          <div class="feature-icon" style="background: rgba(200,43,74,0.15); color: #f47495;">
-            <i class="bi bi-download"></i>
-          </div>
-          <h3>Config Export / Import</h3>
-          <p>Export and import the full gateway configuration as JSON for backup, migration, or replication.</p>
-        </div>
-
       </div>
     </div>
   </section>
 
-  <!-- Screenshot -->
+  <!-- Screenshots carousel -->
   <section class="screenshot-section" style="background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
     <div class="container">
       <div class="text-center" style="margin-bottom: 2rem;">
-        <h2 class="section-title">Pipeline Dashboard</h2>
-        <p class="section-sub mb-0">Monitor data flow from industrial devices to the cloud in real time.</p>
+        <h2 class="section-title">See it in action</h2>
+        <p class="section-sub mb-0">A complete web UI to configure, monitor, and operate your edge gateway.</p>
       </div>
-      <div class="screenshot-wrapper">
-        <img src="screenshots/dashboard.png" alt="IIoT Edge Gateway dashboard showing pipeline health metrics" class="screenshot-img">
+
+      <div id="screenshotCarousel" class="carousel slide" data-bs-ride="false">
+        <div class="carousel-indicators">
+          <button type="button" data-bs-target="#screenshotCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Pipeline Dashboard"></button>
+          <button type="button" data-bs-target="#screenshotCarousel" data-bs-slide-to="1" aria-label="OPC UA Browser"></button>
+          <button type="button" data-bs-target="#screenshotCarousel" data-bs-slide-to="2" aria-label="Modbus Config"></button>
+          <button type="button" data-bs-target="#screenshotCarousel" data-bs-slide-to="3" aria-label="Live Messages"></button>
+        </div>
+        <div class="carousel-inner">
+          <div class="carousel-item active">
+            <img src="screenshots/dashboard.png" class="d-block w-100 screenshot-img" alt="Pipeline Dashboard" style="border-radius:0;border:none;box-shadow:none;">
+          </div>
+          <div class="carousel-item">
+            <img src="screenshots/browse-opcua.png" class="d-block w-100 screenshot-img" alt="OPC UA Node Browser" style="border-radius:0;border:none;box-shadow:none;">
+          </div>
+          <div class="carousel-item">
+            <img src="screenshots/modbus-config.png" class="d-block w-100 screenshot-img" alt="Modbus TCP Configuration" style="border-radius:0;border:none;box-shadow:none;">
+          </div>
+          <div class="carousel-item">
+            <img src="screenshots/mqtt-view-messages.png" class="d-block w-100 screenshot-img" alt="MQTT Live Messages" style="border-radius:0;border:none;box-shadow:none;">
+          </div>
+        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#screenshotCarousel" data-bs-slide="prev">
+          <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+          <span class="visually-hidden">Previous</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#screenshotCarousel" data-bs-slide="next">
+          <span class="carousel-control-next-icon" aria-hidden="true"></span>
+          <span class="visually-hidden">Next</span>
+        </button>
       </div>
-      <p class="screenshot-caption">Live pipeline metrics — OPC UA reads, MQTT publish rate, system health</p>
+
+      <p class="carousel-caption-custom text-center" id="carousel-caption">Pipeline Dashboard — live pipeline metrics, system health</p>
     </div>
   </section>
 
@@ -683,5 +805,16 @@
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const captions = [
+      'Pipeline Dashboard — live pipeline metrics, system health',
+      'OPC UA Node Browser — navigate the address space and select tags',
+      'Modbus TCP — configure registers and test connections',
+      'MQTT Live Messages — tail messages flowing to your broker in real time',
+    ];
+    document.getElementById('screenshotCarousel').addEventListener('slid.bs.carousel', e => {
+      document.getElementById('carousel-caption').textContent = captions[e.to];
+    });
+  </script>
 </body>
 </html>
