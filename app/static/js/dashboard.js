@@ -44,6 +44,7 @@ async function refreshTelegrafRunning() {
 }
 
 function updatePipelineStatus() {
+    if (telegrafRunning === null) return;   // status not yet known — avoid flash
     if (pipelineCrashed) {
         setPipelineState("crashed");
         return;
